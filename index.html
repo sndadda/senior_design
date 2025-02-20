@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Dragon Insight</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="script.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <div class="login-box">
+            <img src="logo.png" alt="Dragon Insight Logo" class="logo">
+            <h1>Welcome</h1>
+            <p>Log in to Dragon Insight to continue.</p>
+
+            <form action="#" method="POST">
+                <label for="email">Email address*</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+
+                <label for="password">Password*</label>
+                <div class="password-container">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <span class="password-toggle">👁</span>
+                </div>
+
+                <div class="forgot-password">
+                    <a href="#">Forgot password?</a>
+                </div>
+
+                <button type="submit" disabled>Continue</button>
+            </form>
+
+            <p class="signup-text">Don't have an account? <a href="signup.html">Sign up</a></p>
+        </div>
+    </div>
+
+</body>
+</html>
