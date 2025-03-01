@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Peer Evaluation Survey</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="script.js"></script>
+</head>
+<body data-page="survey">
+
+  <div class="container">
+    <div class="survey-box">
+      <h1>Submit Peer Evaluation</h1>
+      <h2>Peer Evaluation Survey</h2>
+
+      <!-- We can display the selected course & teammate from the URL parameters here -->
+      <p class="survey-info">
+        Evaluating:
+        <span id="course-teammate">Course – Teammate</span><br/>
+        Due Date: <strong>December 31, 2024</strong>
+      </p>
+
+      <form id="survey-form">
+        <div class="question">
+          <label>1. Rate the quality of your teammate's contributions:</label>
+          <div class="options">
+            <label><input type="radio" name="q1" value="1" required /> 1</label>
+            <label><input type="radio" name="q1" value="2" /> 2</label>
+            <label><input type="radio" name="q1" value="3" /> 3</label>
+            <label><input type="radio" name="q1" value="4" /> 4</label>
+            <label><input type="radio" name="q1" value="5" /> 5</label>
+          </div>
+        </div>
+
+        <div class="question">
+          <label>2. How effective was their communication?</label>
+          <div class="options">
+            <label><input type="radio" name="q2" value="1" required /> 1</label>
+            <label><input type="radio" name="q2" value="2" /> 2</label>
+            <label><input type="radio" name="q2" value="3" /> 3</label>
+            <label><input type="radio" name="q2" value="4" /> 4</label>
+            <label><input type="radio" name="q2" value="5" /> 5</label>
+          </div>
+        </div>
+
+        <div class="question">
+          <label>3. How would you rate their overall teamwork?</label>
+          <div class="options">
+            <label><input type="radio" name="q3" value="1" required /> 1</label>
+            <label><input type="radio" name="q3" value="2" /> 2</label>
+            <label><input type="radio" name="q3" value="3" /> 3</label>
+            <label><input type="radio" name="q3" value="4" /> 4</label>
+            <label><input type="radio" name="q3" value="5" /> 5</label>
+          </div>
+        </div>
+
+        <div class="question">
+          <label>4. Additional comments:</label>
+          <textarea name="comments" placeholder="Enter your feedback here..." rows="4"></textarea>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" id="submit-eval-btn">Submit Evaluation</button>
+          <button type="button" id="back-btn">Back</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

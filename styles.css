@@ -1,4 +1,4 @@
-/* General Styles */
+/* 🌍 General Styles */
 body {
     font-family: Arial, sans-serif;
     background-color: #f7f7f7;
@@ -9,7 +9,7 @@ body {
     margin: 0;
 }
 
-/* Login & Signup Box */
+/* 📦 Centered Container */
 .container {
     display: flex;
     justify-content: center;
@@ -17,7 +17,8 @@ body {
     width: 100%;
 }
 
-.login-box {
+/* 🔐 Login & Signup Box */
+.login-box, .survey-box {
     background: white;
     padding: 30px;
     width: 350px;
@@ -26,16 +27,22 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Logo */
+/* 🔵 Logo */
 .logo {
     width: 80px;
     margin-bottom: 15px;
 }
 
-/* Text */
+/* 📌 Text Styling */
 h1 {
     font-size: 24px;
     margin-bottom: 5px;
+}
+
+h2 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 15px;
 }
 
 p {
@@ -44,7 +51,7 @@ p {
     margin-bottom: 20px;
 }
 
-/* Form */
+/* 📝 Form Elements */
 form {
     text-align: left;
 }
@@ -56,7 +63,7 @@ label {
     margin-bottom: 5px;
 }
 
-input {
+input, select, textarea {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
@@ -65,7 +72,7 @@ input {
     font-size: 14px;
 }
 
-/* Password Input with Toggle */
+/* 👁 Password Input with Toggle */
 .password-container {
     position: relative;
     width: 100%;
@@ -85,7 +92,7 @@ input {
     opacity: 1;
 }
 
-/* Button */
+/* 🟦 Primary Button */
 button {
     width: 100%;
     padding: 12px;
@@ -98,7 +105,7 @@ button {
     transition: background 0.3s ease;
 }
 
-/* Disabled Button */
+/* ❌ Disabled Button */
 button:disabled {
     background: #a5c0ff;
     cursor: not-allowed;
@@ -108,25 +115,142 @@ button:hover:not(:disabled) {
     background: #2356c6;
 }
 
-/* Signup Text */
+/* 🔗 Signup & Forgot Password Links */
 .signup-text {
     margin-top: 15px;
     font-size: 14px;
 }
 
-.signup-text a {
+.signup-text a,
+.forgot-password a {
     color: #007bff;
     text-decoration: none;
     font-weight: bold;
 }
 
-.signup-text a:hover {
+.signup-text a:hover,
+.forgot-password a:hover {
     text-decoration: underline;
 }
 
-/* Responsive */
+/* 📋 EVALUATION PAGE */
+.evaluation-box {
+    background: white;
+    padding: 30px;
+    width: 400px;
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.evaluation-box select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+#next-btn {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* 📝 SURVEY PAGE */
+.survey-box {
+    background: white;
+    padding: 30px;
+    width: 600px;
+    text-align: left;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.survey-box h1,
+.survey-box h2 {
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.survey-info {
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* 📝 Survey Questions */
+.question {
+    margin-bottom: 20px;
+}
+
+.question label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* 🟡 Radio Button Styling */
+.options label {
+    display: inline-block;
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+/* 📏 Textarea for Comments */
+textarea {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 14px;
+    resize: vertical;
+}
+
+/* 🔘 Button Group for Survey */
+.button-group {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#submit-eval-btn,
+#back-btn {
+    background: #2c6bed;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+#back-btn {
+    background: #a0a0a0; /* Different color for back button */
+}
+
+#submit-eval-btn:hover {
+    background: #2356c6;
+}
+
+#back-btn:hover {
+    background: #888;
+}
+
+/* 📱 RESPONSIVE DESIGN */
+@media (max-width: 700px) {
+    .survey-box {
+        width: 90%;
+        padding: 20px;
+    }
+}
+
 @media (max-width: 400px) {
-    .login-box {
+    .login-box,
+    .evaluation-box {
         width: 90%;
         padding: 20px;
     }

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Peer Evaluation - Dragon Insight</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="script.js"></script>
+</head>
+<body data-page="evaluation">
+
+    <div class="container">
+        <div class="evaluation-box">
+            <img src="logo.png" alt="Dragon Insight Logo" class="logo">
+            <h1>Submit Peer Evaluation</h1>
+
+            <div class="info-box">
+                <p>You still have <strong>2 surveys</strong> left in CS461.</p>
+            </div>
+
+            <p>Select your course and the teammate you have not yet evaluated.</p>
+
+            <form id="evaluation-form">
+                <label for="course">Select course</label>
+                <select id="course" required>
+                    <option value="">Select course</option>
+                    <option value="CS461">CS461</option>
+                    <option value="CS350">CS350</option>
+                    <option value="CS101">CS101</option>
+                </select>
+
+                <label for="teammate">Select teammate</label>
+                <select id="teammate" required>
+                    <option value="">Select teammate</option>
+                    <option value="John Doe">John Doe</option>
+                    <option value="Jane Smith">Jane Smith</option>
+                    <option value="Alex Brown">Alex Brown</option>
+                </select>
+
+                <button id="next-btn" type="submit" disabled>Next</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
