@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
     const page = document.body.getAttribute("data-page");
 
-    if (page === "login" || page === "signup") {
+    if (page === "login" || page === "signup" || page === "professorsignup") {
         setupAuthForm();
     } else if (page === "evaluation") {
         setupEvaluationPage();
@@ -12,8 +12,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // 📌 AUTH FORM LOGIC (Login & Signup)
 function setupAuthForm() {
-    const emailInput = document.querySelector("#email");
-    const passwordInput = document.querySelector("#password");
+    const emailInput = document.querySelector("#email") || document.querySelector("#signup-email") || document.querySelector("#professor-email");
+    const passwordInput = document.querySelector("#password") || document.querySelector("#signup-password") || document.querySelector("#professor-password");
+    const departmentInput = document.querySelector("#department");
+    const titleInput = document.querySelector("#title");
     const submitButton = document.querySelector("button[type='submit']");
     const passwordToggles = document.querySelectorAll(".password-toggle");
 
@@ -26,9 +28,18 @@ function setupAuthForm() {
     function validateForm() {
         const email = emailInput?.value.trim();
         const password = passwordInput?.value.trim();
+        const department = departmentInput?.value.trim();
+        const title = titleInput?.value;
+
+        // Check if it's the professor signup page
+        const isProfessorSignup = document.body.getAttribute("data-page") === "professorsignup";
 
         if (isValidEmail(email) && password.length >= 6) {
-            submitButton.disabled = false;
+            if (isProfessorSignup) {
+                submitButton.disabled = !(department && title); // Require department & title
+            } else {
+                submitButton.disabled = false;
+            }
         } else {
             submitButton.disabled = true;
         }
@@ -38,6 +49,11 @@ function setupAuthForm() {
     if (emailInput && passwordInput) {
         emailInput.addEventListener("input", validateForm);
         passwordInput.addEventListener("input", validateForm);
+    }
+
+    if (departmentInput && titleInput) {
+        departmentInput.addEventListener("input", validateForm);
+        titleInput.addEventListener("change", validateForm);
     }
 
     // Password toggle feature
@@ -64,10 +80,10 @@ function setupAuthForm() {
     if (authForm) {
         authForm.addEventListener("submit", function (event) {
             event.preventDefault();
-            if (document.body.getAttribute("data-page") === "login") {
-                window.location.href = "evaluation.html"; // Redirect to Peer Evaluation after login
-            } else if (document.body.getAttribute("data-page") === "signup") {
+            if (document.body.getAttribute("data-page") === "signup") {
                 window.location.href = "index.html"; // Redirect to login after signup
+            } else if (document.body.getAttribute("data-page") === "professorsignup") {
+                window.location.href = "index.html"; // Redirect to login after professor signup
             }
         });
     }

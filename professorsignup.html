@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor Sign Up - Dragon Insight</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="script.js"></script>
+</head>
+<body data-page="professorsignup">
+
+    <div class="container">
+        <div class="signup-box">
+            <img src="logo.png" alt="Dragon Insight Logo" class="logo">
+            <h1>Professor Sign Up</h1>
+            <p>Create a professor account to manage courses.</p>
+
+            <form id="professor-signup-form">
+                <label for="professor-email">Email</label>
+                <input type="email" id="professor-email" required>
+
+                <label for="professor-password">Password</label>
+                <div class="password-container">
+                    <input type="password" id="professor-password" required>
+                    <span class="password-toggle">👁</span>
+                </div>
+
+                <label for="department">Department</label>
+                <input type="text" id="department" required>
+
+                <label for="title">Title</label>
+                <select id="title" required>
+                    <option value="">Select your title</option>
+                    <option value="Professor">Professor</option>
+                    <option value="Assistant Professor">Assistant Professor</option>
+                    <option value="Associate Professor">Associate Professor</option>
+                    <option value="Lecturer">Lecturer</option>
+                </select>
+
+                <button type="submit" id="professor-signup-btn" disabled>Sign Up</button>
+            </form>
+
+            <p class="signup-text">
+                Already have an account? <a href="index.html">Log in</a>
+            </p>
+            <p class="student-link">
+                Are you a student? <a href="signup.html">Click here</a>
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>
