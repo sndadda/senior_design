@@ -28,10 +28,9 @@ const createDatabaseIfNotExists = async () => {
     }
 };
 
-// Run database creation check
 createDatabaseIfNotExists();
 
-// Main connection pool for queries
+// main connection pool for queries
 const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
@@ -51,7 +50,7 @@ const initDatabase = async () => {
     }
 };
 
-// Run schema setup after ensuring the database exists
+// run schema setup 
 setTimeout(initDatabase, 3000);
 
 module.exports = pool;

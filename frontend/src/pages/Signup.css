@@ -66,3 +66,21 @@ button:disabled {
     color: red;
     margin-bottom: 10px;
 }
+
+.back-button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: #6c757d;
+    border: none;
+    color: white;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .back-button:hover {
+    background: #5a6268;
+  }
+  

@@ -6,13 +6,14 @@ BEGIN
    END IF;
 END $$;
 
+
 CREATE TABLE IF NOT EXISTS Users (
     user_id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     username VARCHAR(70) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL CHECK (email LIKE '%@drexel.edu'),
-    pass VARCHAR(255) NOT NULL CHECK (LENGTH(pass) >= 8),
+    password_hash VARCHAR(255) NOT NULL CHECK (LENGTH(password_hash) >= 8),
     role VARCHAR(10) NOT NULL CHECK (role IN ('student', 'professor'))
 );
 
@@ -25,7 +26,7 @@ CREATE TABLE IF NOT EXISTS Section (
     section_id SERIAL PRIMARY KEY,
     course_num VARCHAR(10) REFERENCES Course(course_num) ON DELETE CASCADE,
     term VARCHAR(10) NOT NULL CHECK (term IN ('Fall', 'Winter', 'Spring', 'Summer')),
-    year INT NOT NULL CHECK (year >= 2000 AND year <= 2100),
+    year INT NOT NULL CHECK (year >= 2000 AND year <= 2030),
     section_num INT NOT NULL CHECK (section_num > 0)
 );
 

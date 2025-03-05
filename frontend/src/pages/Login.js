@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Login.css"; // Import styles
+import "./Login.css"; 
 
-const Login = () => {
+const Login = ({ setUser }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -10,29 +10,26 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
+  
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: "include",
+        credentials: "include", //cookies
       });
-
+  
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Login failed.");
-
-      localStorage.setItem("token", data.token);
-
-      if (data.user.role === "student") {
-        navigate("/student_dashboard");
-      } else if (data.user.role === "professor") {
-        navigate("/professor_dashboard");
-      }
+  
+      setUser(data); 
+      navigate(`/${data.role}_dashboard`);
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
+  
+
 
   return (
     <div className="container">

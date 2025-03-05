@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Signup.css"; // Import styles
+import "./Signup.css"; 
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student"); // Default to student
+  const [role, setRole] = useState("student"); // default to student
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ const Signup = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/auth/signup`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -121,6 +121,10 @@ const Signup = () => {
           </button>
         </form>
 
+        <button onClick={() => navigate("/")} className="back-button">
+          ← Back to Login
+        </button>
+        
         <p className="signup-text">
           {role === "student" ? (
             <a href="#" onClick={() => setRole("professor")}>
