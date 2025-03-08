@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../db"); // PostgreSQL connection
+const db = require("../db"); 
 const router = express.Router();
 
 // Get all users
