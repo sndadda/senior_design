@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS Users (
     email VARCHAR(100) UNIQUE NOT NULL CHECK (email LIKE '%@drexel.edu'),
     password_hash VARCHAR(255) NOT NULL CHECK (LENGTH(password_hash) >= 8),
     role VARCHAR(10) NOT NULL CHECK (role IN ('student', 'professor'))
+	is_verified BOOLEAN DEFAULT FALSE,
+    verification_token VARCHAR(64),
+    verification_expires TIMESTAMP  
 );
 
 CREATE TABLE IF NOT EXISTS Course (

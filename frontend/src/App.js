@@ -36,6 +36,7 @@ function App() {
       <Routes>
         <Route path="/" element={user ? <Navigate to={`/${user.role}_dashboard`} /> : <Login setUser={setUser} />} />
         <Route path="/signup" element={user ? <Navigate to={`/${user.role}_dashboard`} /> : <Signup />} />
+		<Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/student_dashboard" element={user?.role === "student" ? <StudentDashboard setUser={setUser} /> : <Navigate to="/" />} />
         <Route path="/professor_dashboard" element={user?.role === "professor" ? <ProfessorDashboard setUser={setUser} /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
