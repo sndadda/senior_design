@@ -3,10 +3,11 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
 const { body, validationResult } = require("express-validator");
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
 const crypto = require("crypto");
 
 require("dotenv").config();
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const router = express.Router();
 
@@ -32,73 +33,118 @@ router.get("/user", authenticateToken, async (req, res) => {
       res.status(500).json({ message: "Server error", error: error.message });
     }
 });
+router.get("/verify-email", async (req, res) => {
+    const { token } = req.query;
 
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,  // Drexel SMTP server
-    port: process.env.EMAIL_PORT,  // Usually 587 for STARTTLS or 465 for SSL
-    secure: process.env.EMAIL_SECURE === "true", // True for 465, False for 587
-    auth: {
-        user: process.env.EMAIL_USER,  // Drexel email
-        pass: process.env.EMAIL_PASS,  // Drexel email password
-    },
-    tls: {
-        rejectUnauthorized: false,  // Allows self-signed certificates if needed
+    if (!token) {
+        return res.status(400).json({ message: "Invalid verification link." });
+    }
+
+    try {
+        // Check if the token exists and is not expired
+        const result = await pool.query(
+            "SELECT email FROM EmailVerifications WHERE verification_token = $1 AND expires_at > NOW()",
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({ message: "Invalid or expired token." });
+        }
+
+        const email = result.rows[0].email;
+
+        // Remove the verification record
+        await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
+
+        res.json({ message: "Email verified successfully! You can now create your account.", email });
+
+    } catch (error) {
+        console.error("Email Verification Error:", error);
+        res.status(500).json({ message: "Error verifying email.", error: error.message });
     }
 });
 
-router.post(
-    "/signup",
-    [
-        body("first_name").notEmpty(),
-        body("last_name").notEmpty(),
-        body("email").isEmail().matches(/@drexel\.edu$/),
-        body("password").isLength({ min: 8 }),
-    ],
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ message: "Invalid input", errors: errors.array() });
-        }
 
-        const { first_name, last_name, email, password, role } = req.body;
-        const username = email.split("@")[0];
-        const userRole = role === "professor" ? "professor" : "student";
-
-        try {
-            // Hash password
-            const hashedPassword = await bcrypt.hash(password, 10);
-
-            // Generate email verification token
-            const verificationToken = crypto.randomBytes(32).toString("hex");
-            const verificationExpires = new Date();
-            verificationExpires.setHours(verificationExpires.getHours() + 1); // Expires in 1 hour
-
-            // Insert user with unverified status
-            const result = await pool.query(
-                `INSERT INTO Users (first_name, last_name, username, email, password_hash, role, is_verified, verification_token, verification_expires)
-                 VALUES ($1, $2, $3, $4, $5, $6, false, $7, $8) RETURNING user_id, role`,
-                [first_name, last_name, username, email, hashedPassword, userRole, verificationToken, verificationExpires]
-            );
-
-            // Send verification email
-            const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-            await transporter.sendMail({
-                from: `"Dragon Insight" <${process.env.EMAIL_USER}>`,
-                to: email,
-                subject: "Verify Your Email - Dragon Insight",
-                html: `<p>Click <a href="${verificationUrl}">here</a> to verify your email.</p>`,
-            });
-
-            res.status(201).json({ message: "User registered successfully. Please check your email for verification.", role: userRole });
-        } catch (error) {
-            console.error("Signup Error:", error);
-            if (error.code === "23505") {
-                return res.status(400).json({ message: "Email or username already exists." });
-            }
-            res.status(500).json({ message: "Error signing up", error: error.message });
-        }
+router.post("/signup", [
+    body("email").isEmail().matches(/@drexel\.edu$/),
+    body("password").isLength({ min: 8 }),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ message: "Invalid input", errors: errors.array() });
     }
-);
+
+    const { email, password } = req.body;
+
+    try {
+        // Check if email is already registered
+        const existingUser = await pool.query("SELECT user_id FROM Users WHERE email = $1", [email]);
+        if (existingUser.rows.length > 0) {
+            return res.status(400).json({ message: "Email is already registered." });
+        }
+
+        // Generate a verification token
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const verificationExpires = new Date();
+        verificationExpires.setHours(verificationExpires.getHours() + 1); // 1-hour expiration
+
+        // Insert token into the EmailVerifications table
+        await pool.query(
+            `INSERT INTO EmailVerifications (email, verification_token, expires_at)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (email) DO UPDATE SET verification_token = $2, expires_at = $3`,
+            [email, verificationToken, verificationExpires]
+        );
+
+        // Send verification email
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+        const msg = {
+            to: email,
+            from: "verify@dragoninsight.us",
+            subject: "Verify Your Email - Dragon Insight",
+            html: `<p>Click <a href="${verificationUrl}">here</a> to verify your email.</p>`,
+        };
+        await sgMail.send(msg);
+
+        res.status(200).json({ message: "Verification email sent. Please check your inbox." });
+    } catch (error) {
+        console.error("Signup Error:", error);
+        res.status(500).json({ message: "Error sending verification email", error: error.message });
+    }
+});
+
+router.post("/create-account", [
+    body("first_name").notEmpty(),
+    body("last_name").notEmpty(),
+    body("email").isEmail().matches(/@drexel\.edu$/),
+    body("password").isLength({ min: 8 }),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ message: "Invalid input", errors: errors.array() });
+    }
+
+    const { first_name, last_name, email, password, role } = req.body;
+    const username = email.split("@")[0];
+
+    try {
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insert user into Users table
+        await pool.query(
+            `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
+            [first_name, last_name, username, email, hashedPassword, role]
+        );
+
+        res.status(201).json({ message: "Account created successfully!" });
+    } catch (error) {
+        console.error("Account Creation Error:", error);
+        res.status(500).json({ message: "Error creating account", error: error.message });
+    }
+});
+
 
   
 
