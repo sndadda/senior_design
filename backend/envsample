@@ -5,3 +5,7 @@ DB_NAME=dragon_insight
 DB_PORT=5432
 JWT_SECRET=string you create
 
+SENDGRID_API_KEY=key
+EMAIL_FROM=verify@dragoninsight.us
+
+FRONTEND_URL=http://localhost:3000
