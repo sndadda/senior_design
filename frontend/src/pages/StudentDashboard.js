@@ -1,11 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-<<<<<<< HEAD
-const StudentDashboard = ({ setUser }) => {
-=======
 const StudentDashboard = ({ setUser }) => {  // get setUser from props
->>>>>>> origin/prof-verif
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -15,7 +11,6 @@ const StudentDashboard = ({ setUser }) => {  // get setUser from props
       console.error("Logout failed:", error);
     } finally {
       setUser(null);
-<<<<<<< HEAD
       navigate("/");
     }
   };
@@ -25,28 +20,14 @@ const StudentDashboard = ({ setUser }) => {  // get setUser from props
     navigate("/student_evaluation");
   };
 
-=======
-      navigate("/");  // redirect to login after logout
-    }
-  };
-
->>>>>>> origin/prof-verif
   return (
     <div>
       <h2>Student Dashboard</h2>
       <p>Welcome, student!</p>
-<<<<<<< HEAD
       <button onClick={handleLogout}>Logout</button>
       <button onClick={handleNavigateToEvaluation}>Go to Evaluation</button>
-=======
-      <button onClick={handleLogout}>Logout</button> 
->>>>>>> origin/prof-verif
     </div>
   );
 };
 
 export default StudentDashboard;
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/prof-verif
