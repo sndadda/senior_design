@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import StudentDashboard from "./pages/StudentDashboard";
 import ProfessorDashboard from "./pages/ProfessorDashboard";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -38,6 +39,7 @@ function App() {
         <Route path="/signup" element={user ? <Navigate to={`/${user.role}_dashboard`} /> : <Signup />} />
         <Route path="/student_dashboard" element={user?.role === "student" ? <StudentDashboard setUser={setUser} /> : <Navigate to="/" />} />
         <Route path="/professor_dashboard" element={user?.role === "professor" ? <ProfessorDashboard setUser={setUser} /> : <Navigate to="/" />} />
+		<Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

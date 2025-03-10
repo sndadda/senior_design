@@ -6,6 +6,12 @@ BEGIN
    END IF;
 END $$;
 
+CREATE TABLE IF NOT EXISTS EmailVerifications (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(100) UNIQUE NOT NULL CHECK (email LIKE '%@drexel.edu'),
+    verification_token VARCHAR(64) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS Users (
     user_id SERIAL PRIMARY KEY,
