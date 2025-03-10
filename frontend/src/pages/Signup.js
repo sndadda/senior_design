@@ -14,37 +14,46 @@ const Signup = () => {
   // Check if email is valid and @drexel.edu
   const isValidDrexelEmail = (email) => /^[a-zA-Z0-9._%+-]+@drexel\.edu$/.test(email);
 
-  // Extract username from email
-  const getUsername = (email) => email.split("@")[0];
+  
 
   const handleSignup = async (e) => {
     e.preventDefault();
-  
+
     if (!isValidDrexelEmail(email)) {
-      setErrorMessage("Email must be a valid @drexel.edu address.");
-      return;
+        setErrorMessage("Email must be a valid @drexel.edu address.");
+        return;
     }
     if (password.length < 8) {
-      setErrorMessage("Password must be at least 8 characters.");
-      return;
+        setErrorMessage("Password must be at least 8 characters.");
+        return;
     }
-  
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }), // Only sending email here
-      });
-  
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to send verification code.");
 
-      navigate("/verify-email", { state: { email } });
-  
+    // Send all user details
+    const userData = { 
+        first_name: firstName, 
+        last_name: lastName, 
+        email, 
+        password, 
+        role 
+    };
+
+    try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userData),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Failed to send verification code.");
+
+        navigate("/verify-email", { state: { email } });
+
     } catch (error) {
-      setErrorMessage(error.message);
+        setErrorMessage(error.message);
     }
-  };
+};
+
   
 
   return (

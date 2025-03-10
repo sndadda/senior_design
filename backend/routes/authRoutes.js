@@ -33,54 +33,17 @@ router.get("/user", authenticateToken, async (req, res) => {
       res.status(500).json({ message: "Server error", error: error.message });
     }
 });
-router.get("/verify-email", async (req, res) => {
-    const { token } = req.query;
-
-    if (!token) {
-        return res.status(400).json({ message: "Invalid verification link." });
-    }
-
-    try {
-        // Check if the token exists and is not expired
-        const result = await pool.query(
-            "SELECT email FROM EmailVerifications WHERE verification_token = $1 AND expires_at > NOW()",
-            [token]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(400).json({ message: "Invalid or expired token." });
-        }
-
-        const email = result.rows[0].email;
-        const username = email.split("@")[0];
-
-        // Hash a temporary password (user should reset later)
-        const tempPassword = crypto.randomBytes(10).toString("hex");
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-        // Create user in the Users table
-        await pool.query(
-            `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
-             VALUES ('', '', $1, $2, $3, 'student')`,
-            [username, email, hashedPassword]
-        );
-
-        // Remove the verification record
-        await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
-
-        res.json({ message: "Email verified successfully! You can now log in." });
-    } catch (error) {
-        console.error("Email Verification Error:", error);
-        res.status(500).json({ message: "Error verifying email.", error: error.message });
-    }
-});
 
 
 
 router.post("/signup", [
-    body("email").isEmail().matches(/@drexel\.edu$/)
+    body("first_name").notEmpty(),
+    body("last_name").notEmpty(),
+    body("email").isEmail().matches(/@drexel\.edu$/),
+    body("password").isLength({ min: 8 }),
+    body("role").isIn(["student", "professor"])
 ], async (req, res) => {
-    const { email } = req.body;
+    const { first_name, last_name, email, password, role } = req.body;
 
     try {
         // Check if email is already registered
@@ -88,21 +51,20 @@ router.post("/signup", [
         if (existingUser.rows.length > 0) {
             return res.status(400).json({ message: "Email is already registered." });
         }
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Generate a 6-digit verification code
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         const verificationExpires = new Date();
-        verificationExpires.setMinutes(verificationExpires.getMinutes() + 10); // Code expires in 10 minutes
+        verificationExpires.setMinutes(verificationExpires.getMinutes() + 10); // 10-minute expiration
 
-        // Insert the verification code into the database
         await pool.query(
-            `INSERT INTO EmailVerifications (email, verification_code, expires_at)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (email) DO UPDATE SET verification_code = $2, expires_at = $3`,
-            [email, verificationCode, verificationExpires]
+            `INSERT INTO EmailVerifications (email, first_name, last_name, password_hash, role, verification_code, expires_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (email) DO UPDATE SET 
+             first_name = $2, last_name = $3, password_hash = $4, role = $5, verification_code = $6, expires_at = $7`,
+            [email, first_name, last_name, hashedPassword, role, verificationCode, verificationExpires]
         );
 
-        // Send the email with the code
         const msg = {
             to: email,
             from: "verify@dragoninsight.us",
@@ -119,7 +81,6 @@ router.post("/signup", [
     }
 });
 
-
 router.post("/verify-code", [
     body("email").isEmail().matches(/@drexel\.edu$/),
     body("code").isLength({ min: 6, max: 6 }).isNumeric()
@@ -127,7 +88,6 @@ router.post("/verify-code", [
     const { email, code } = req.body;
 
     try {
-        // Check if the verification code is valid
         const result = await pool.query(
             "SELECT * FROM EmailVerifications WHERE email = $1 AND verification_code = $2 AND expires_at > NOW()",
             [email, code]
@@ -137,15 +97,30 @@ router.post("/verify-code", [
             return res.status(400).json({ message: "Invalid or expired verification code." });
         }
 
-        // Mark email as verified
+        const { first_name, last_name, password_hash, role } = result.rows[0];
+        const username = email.split("@")[0];
+
+        console.log("Attempting to create user:", { first_name, last_name, username, email, password_hash, role });
+
+        const userInsert = await pool.query(
+            `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
+            [first_name, last_name, username, email, password_hash, role]
+        );
+
+        console.log("User created successfully:", userInsert.rows[0]);
+
         await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
 
-        res.status(200).json({ message: "Email verified. You can now create your account." });
+        res.status(201).json({ message: "Account created successfully! You can now log in." });
     } catch (error) {
         console.error("Verification Code Error:", error);
         res.status(500).json({ message: "Error verifying code.", error: error.message });
     }
 });
+
+
+
 
 router.post("/create-account", [
     body("first_name").notEmpty(),
@@ -182,7 +157,6 @@ router.post("/create-account", [
 
 
   
-
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -194,10 +168,6 @@ router.post("/login", async (req, res) => {
         }
 
         const user = userQuery.rows[0];
-
-        if (!user.is_verified) {
-            return res.status(403).json({ message: "Please verify your email before logging in." });
-        }
 
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
 
@@ -211,9 +181,11 @@ router.post("/login", async (req, res) => {
 
         res.json({ message: "Login successful", role: user.role });
     } catch (error) {
+        console.error("Login Error:", error);
         res.status(500).json({ message: "Error logging in", error: error.message });
     }
 });
+
 
 router.post("/logout", (req, res) => {
     res.clearCookie("token", {

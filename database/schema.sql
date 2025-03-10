@@ -10,12 +10,15 @@ END $$;
 TRUNCATE TABLE EmailVerifications CASCADE;
 TRUNCATE TABLE Users CASCADE;
 
-
 DROP TABLE IF EXISTS EmailVerifications;
 
 CREATE TABLE IF NOT EXISTS EmailVerifications (
     id SERIAL PRIMARY KEY,
     email VARCHAR(100) UNIQUE NOT NULL CHECK (email LIKE '%@drexel.edu'),
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL CHECK (LENGTH(password_hash) >= 8),
+    role VARCHAR(10) NOT NULL CHECK (role IN ('student', 'professor')),
     verification_code VARCHAR(6) NOT NULL,
     expires_at TIMESTAMP NOT NULL
 );
