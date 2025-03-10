@@ -1,41 +1,46 @@
-import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const VerifyEmail = () => {
-    const [searchParams] = useSearchParams();
-    const token = searchParams.get("token");
-    const navigate = useNavigate();
-    const [message, setMessage] = useState("Verifying...");
+  const [code, setCode] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email;
 
-    useEffect(() => {
-        if (!token) {
-            setMessage("Invalid verification link.");
-            return;
-        }
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
 
-        const verifyEmail = async () => {
-            try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/verify-email?token=${token}`);
-                const data = await response.json();
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/verify-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code }),
+      });
 
-                if (!response.ok) throw new Error(data.message);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Invalid or expired code.");
 
-                setMessage("Email verified successfully! Redirecting to login...");
-                setTimeout(() => navigate("/"), 3000);
-            } catch (error) {
-                setMessage(error.message);
-            }
-        };
+      // Redirect to account creation after verifying
+      navigate("/create-account", { state: { email } });
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
 
-        verifyEmail();
-    }, [token, navigate]);
+  return (
+    <div>
+      <h1>Verify Your Email</h1>
+      <p>Enter the 6-digit code sent to {email}.</p>
 
-    return (
-        <div>
-            <h2>Email Verification</h2>
-            <p>{message}</p>
-        </div>
-    );
+      {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+
+      <form onSubmit={handleVerifyCode}>
+        <input type="text" value={code} onChange={(e) => setCode(e.target.value)} required />
+        <button type="submit">Verify</button>
+      </form>
+    </div>
+  );
 };
 
 export default VerifyEmail;

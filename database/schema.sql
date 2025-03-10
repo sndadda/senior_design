@@ -6,12 +6,20 @@ BEGIN
    END IF;
 END $$;
 
+-- Delete all data from Users and EmailVerifications tables
+TRUNCATE TABLE EmailVerifications CASCADE;
+TRUNCATE TABLE Users CASCADE;
+
+
+DROP TABLE IF EXISTS EmailVerifications;
+
 CREATE TABLE IF NOT EXISTS EmailVerifications (
     id SERIAL PRIMARY KEY,
     email VARCHAR(100) UNIQUE NOT NULL CHECK (email LIKE '%@drexel.edu'),
-    verification_token VARCHAR(64) UNIQUE NOT NULL,
+    verification_code VARCHAR(6) NOT NULL,
     expires_at TIMESTAMP NOT NULL
 );
+
 
 CREATE TABLE IF NOT EXISTS Users (
     user_id SERIAL PRIMARY KEY,

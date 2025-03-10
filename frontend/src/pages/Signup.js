@@ -19,7 +19,7 @@ const Signup = () => {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-
+  
     if (!isValidDrexelEmail(email)) {
       setErrorMessage("Email must be a valid @drexel.edu address.");
       return;
@@ -28,30 +28,24 @@ const Signup = () => {
       setErrorMessage("Password must be at least 8 characters.");
       return;
     }
-
+  
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          username: getUsername(email),
-          email,
-          password,
-          role,
-        }),
+        body: JSON.stringify({ email }), // Only sending email here
       });
-
+  
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Sign-up failed.");
+      if (!response.ok) throw new Error(data.message || "Failed to send verification code.");
 
-      alert("Sign-up successful! Please log in.");
-      navigate("/");
+      navigate("/verify-email", { state: { email } });
+  
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
+  
 
   return (
     <div className="container">

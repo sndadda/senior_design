@@ -52,12 +52,23 @@ router.get("/verify-email", async (req, res) => {
         }
 
         const email = result.rows[0].email;
+        const username = email.split("@")[0];
+
+        // Hash a temporary password (user should reset later)
+        const tempPassword = crypto.randomBytes(10).toString("hex");
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+        // Create user in the Users table
+        await pool.query(
+            `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+             VALUES ('', '', $1, $2, $3, 'student')`,
+            [username, email, hashedPassword]
+        );
 
         // Remove the verification record
         await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
 
-        res.json({ message: "Email verified successfully! You can now create your account.", email });
-
+        res.json({ message: "Email verified successfully! You can now log in." });
     } catch (error) {
         console.error("Email Verification Error:", error);
         res.status(500).json({ message: "Error verifying email.", error: error.message });
@@ -65,16 +76,11 @@ router.get("/verify-email", async (req, res) => {
 });
 
 
-router.post("/signup", [
-    body("email").isEmail().matches(/@drexel\.edu$/),
-    body("password").isLength({ min: 8 }),
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ message: "Invalid input", errors: errors.array() });
-    }
 
-    const { email, password } = req.body;
+router.post("/signup", [
+    body("email").isEmail().matches(/@drexel\.edu$/)
+], async (req, res) => {
+    const { email } = req.body;
 
     try {
         // Check if email is already registered
@@ -83,33 +89,61 @@ router.post("/signup", [
             return res.status(400).json({ message: "Email is already registered." });
         }
 
-        // Generate a verification token
-        const verificationToken = crypto.randomBytes(32).toString("hex");
+        // Generate a 6-digit verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         const verificationExpires = new Date();
-        verificationExpires.setHours(verificationExpires.getHours() + 1); // 1-hour expiration
+        verificationExpires.setMinutes(verificationExpires.getMinutes() + 10); // Code expires in 10 minutes
 
-        // Insert token into the EmailVerifications table
+        // Insert the verification code into the database
         await pool.query(
-            `INSERT INTO EmailVerifications (email, verification_token, expires_at)
+            `INSERT INTO EmailVerifications (email, verification_code, expires_at)
              VALUES ($1, $2, $3)
-             ON CONFLICT (email) DO UPDATE SET verification_token = $2, expires_at = $3`,
-            [email, verificationToken, verificationExpires]
+             ON CONFLICT (email) DO UPDATE SET verification_code = $2, expires_at = $3`,
+            [email, verificationCode, verificationExpires]
         );
 
-        // Send verification email
-        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+        // Send the email with the code
         const msg = {
             to: email,
             from: "verify@dragoninsight.us",
-            subject: "Verify Your Email - Dragon Insight",
-            html: `<p>Click <a href="${verificationUrl}">here</a> to verify your email.</p>`,
+            subject: "Your Verification Code - Dragon Insight",
+            html: `<p>Your verification code is: <strong>${verificationCode}</strong></p>
+                   <p>This code will expire in 10 minutes.</p>`,
         };
         await sgMail.send(msg);
 
-        res.status(200).json({ message: "Verification email sent. Please check your inbox." });
+        res.status(200).json({ message: "Verification code sent. Please check your inbox." });
     } catch (error) {
         console.error("Signup Error:", error);
-        res.status(500).json({ message: "Error sending verification email", error: error.message });
+        res.status(500).json({ message: "Error sending verification code", error: error.message });
+    }
+});
+
+
+router.post("/verify-code", [
+    body("email").isEmail().matches(/@drexel\.edu$/),
+    body("code").isLength({ min: 6, max: 6 }).isNumeric()
+], async (req, res) => {
+    const { email, code } = req.body;
+
+    try {
+        // Check if the verification code is valid
+        const result = await pool.query(
+            "SELECT * FROM EmailVerifications WHERE email = $1 AND verification_code = $2 AND expires_at > NOW()",
+            [email, code]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({ message: "Invalid or expired verification code." });
+        }
+
+        // Mark email as verified
+        await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
+
+        res.status(200).json({ message: "Email verified. You can now create your account." });
+    } catch (error) {
+        console.error("Verification Code Error:", error);
+        res.status(500).json({ message: "Error verifying code.", error: error.message });
     }
 });
 
@@ -117,28 +151,29 @@ router.post("/create-account", [
     body("first_name").notEmpty(),
     body("last_name").notEmpty(),
     body("email").isEmail().matches(/@drexel\.edu$/),
-    body("password").isLength({ min: 8 }),
+    body("password").isLength({ min: 8 })
 ], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ message: "Invalid input", errors: errors.array() });
-    }
-
     const { first_name, last_name, email, password, role } = req.body;
     const username = email.split("@")[0];
 
     try {
-        // Hash password
+        // Ensure email has been verified
+        const existingVerification = await pool.query("SELECT email FROM EmailVerifications WHERE email = $1", [email]);
+        if (existingVerification.rows.length > 0) {
+            return res.status(400).json({ message: "Please verify your email before creating an account." });
+        }
+
+        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert user into Users table
+        // Insert the user into the database
         await pool.query(
             `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
             [first_name, last_name, username, email, hashedPassword, role]
         );
 
-        res.status(201).json({ message: "Account created successfully!" });
+        res.status(201).json({ message: "Account created successfully! You can now log in." });
     } catch (error) {
         console.error("Account Creation Error:", error);
         res.status(500).json({ message: "Error creating account", error: error.message });
@@ -189,29 +224,7 @@ router.post("/logout", (req, res) => {
     res.json({ message: "Logged out successfully" });
   });
   
-router.get("/verify-email", async (req, res) => {
-    const { token } = req.query;
 
-    if (!token) {
-        return res.status(400).json({ message: "Invalid verification link." });
-    }
-
-    try {
-        const user = await pool.query("SELECT user_id FROM Users WHERE verification_token = $1 AND verification_expires > NOW()", [token]);
-
-        if (user.rows.length === 0) {
-            return res.status(400).json({ message: "Invalid or expired token." });
-        }
-
-        // Mark user as verified
-        await pool.query("UPDATE Users SET is_verified = true, verification_token = NULL, verification_expires = NULL WHERE user_id = $1", [user.rows[0].user_id]);
-
-        res.json({ message: "Email verified successfully! You can now log in." });
-    } catch (error) {
-        console.error("Email Verification Error:", error);
-        res.status(500).json({ message: "Error verifying email.", error: error.message });
-    }
-});
 
   
 

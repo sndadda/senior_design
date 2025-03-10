@@ -3,11 +3,9 @@ DB_PASSWORD=pass
 DB_HOST=localhost
 DB_NAME=dragon_insight
 DB_PORT=5432
-JWT_SECRET=string you create
+JWT_SECRET=string
 
-# Email Credentials for gmail SMTP Server
-EMAIL_USER=gmail_email
-EMAIL_PASS=email password
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587  # Usually, 587 is used for sending emails
-EMAIL_SECURE=false  # Use 'true' for port 465, 'false' for 587
+SENDGRID_API_KEY=key
+EMAIL_FROM=verify@dragoninsight.us
+
+FRONTEND_URL=http://localhost:3000
