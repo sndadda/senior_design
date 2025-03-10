@@ -7,6 +7,7 @@ import Signup from "./pages/Signup";
 import StudentDashboard from "./pages/StudentDashboard";
 import ProfessorDashboard from "./pages/ProfessorDashboard";
 import StudentEvaluation from "./pages/StudentEvaluation";
+import Navbar from "./components/Navbar";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -30,10 +31,21 @@ function App() {
     fetchUser();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/logout`, {}, { withCredentials: true });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setUser(null);
+    }
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
     <Router>
+      {user && <Navbar user={user} onLogout={handleLogout} />}
       <Routes>
         <Route path="/" element={user ? <Navigate to={`/${user.role}_dashboard`} /> : <Login setUser={setUser} />} />
         <Route path="/signup" element={user ? <Navigate to={`/${user.role}_dashboard`} /> : <Signup />} />
