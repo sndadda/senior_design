@@ -15,6 +15,8 @@ const Signup = () => {
   const isValidDrexelEmail = (email) => /^[a-zA-Z0-9._%+-]+@drexel\.edu$/.test(email);
 
   // Extract username from email
+  const [aliasEmail, setAliasEmail] = useState("");
+
   const getUsername = (email) => email.split("@")[0];
 
   const handleSignup = async (e) => {
@@ -26,6 +28,11 @@ const Signup = () => {
     }
     if (password.length < 8) {
       setErrorMessage("Password must be at least 8 characters.");
+    setErrorMessage("");
+    }
+
+    if (role === "professor" && !isValidDrexelEmail(aliasEmail)) {
+      setErrorMessage("Alias email must be a valid Drexel email.");
       return;
     }
 
@@ -40,14 +47,16 @@ const Signup = () => {
           email,
           password,
           role,
+          email,
+          alias_email: role === "professor" ? aliasEmail : undefined,
         }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Sign-up failed.");
 
-      alert("Sign-up successful! Please log in.");
-      navigate("/");
+      alert("Sign-up successful! Redirecting...");
+      navigate(role === "professor" ? "/professor_dashboard" : "/student_dashboard");
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -64,55 +73,31 @@ const Signup = () => {
 
         <form onSubmit={handleSignup}>
           <label htmlFor="first-name">First Name</label>
-          <input
-            type="text"
-            id="first-name"
-            placeholder="Enter your first name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-          />
+          <input type="text" id="first-name" placeholder="Enter your first name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
 
           <label htmlFor="last-name">Last Name</label>
-          <input
-            type="text"
-            id="last-name"
-            placeholder="Enter your last name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-          />
+          <input type="text" id="last-name" placeholder="Enter your last name" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
 
           <label htmlFor="signup-email">Email address</label>
-          <input
-            type="email"
-            id="signup-email"
-            placeholder="Enter your @drexel.edu email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <input type="email" id="signup-email" placeholder="Enter your @drexel.edu email" value={email} onChange={(e) => setEmail(e.target.value)} required />
 
           <label htmlFor="signup-password">Password</label>
           <div className="password-container">
-            <input
-              type="password"
-              id="signup-password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <span
-              className="password-toggle"
-              onClick={() => {
-                const input = document.getElementById("signup-password");
-                input.type = input.type === "password" ? "text" : "password";
-              }}
-            >
+            <input type="password" id="signup-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <span className="password-toggle" onClick={() => {
+              const input = document.getElementById("signup-password");
+              input.type = input.type === "password" ? "text" : "password";
+            }}>
               👁
             </span>
           </div>
+
+          {role === "professor" && (
+            <>
+              <label htmlFor="alias-email">Professor Alias Email</label>
+              <input type="email" id="alias-email" placeholder="e.g. sandrad@drexel.edu" value={aliasEmail} onChange={(e) => setAliasEmail(e.target.value)} required />
+            </>
+          )}
 
           <div id="signup-error-message" className="error-message"></div>
 
@@ -121,10 +106,10 @@ const Signup = () => {
           </button>
         </form>
 
+
         <button onClick={() => navigate("/")} className="back-button">
           ← Back to Login
         </button>
-        
         <p className="signup-text">
           {role === "student" ? (
             <a href="#" onClick={() => setRole("professor")}>
@@ -140,5 +125,4 @@ const Signup = () => {
     </div>
   );
 };
-
 export default Signup;

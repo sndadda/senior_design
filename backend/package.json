@@ -14,6 +14,8 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
+    "axios": "^1.8.2",
+    "cheerio": "^1.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -21,7 +23,9 @@
     "express-validator": "^7.2.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.3"
+    "pg": "^8.13.3",
+    "playwright": "^1.51.0",
+    "puppeteer": "^24.4.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
