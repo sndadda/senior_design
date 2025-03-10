@@ -1,26 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Signup.css"; 
+import "./Signup.css";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [aliasEmail, setAliasEmail] = useState(""); // Only for professors
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student"); // default to student
+  const [role, setRole] = useState("student"); // Default role
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
-  // Check if email is valid and @drexel.edu
+  // Validate @drexel.edu email
   const isValidDrexelEmail = (email) => /^[a-zA-Z0-9._%+-]+@drexel\.edu$/.test(email);
 
   // Extract username from email
-  const [aliasEmail, setAliasEmail] = useState("");
-
   const getUsername = (email) => email.split("@")[0];
 
+  // Handle Signup & Send Verification Code
   const handleSignup = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
 
     if (!isValidDrexelEmail(email)) {
       setErrorMessage("Email must be a valid @drexel.edu address.");
@@ -28,9 +29,8 @@ const Signup = () => {
     }
     if (password.length < 8) {
       setErrorMessage("Password must be at least 8 characters.");
-    setErrorMessage("");
+      return;
     }
-
     if (role === "professor" && !isValidDrexelEmail(aliasEmail)) {
       setErrorMessage("Alias email must be a valid Drexel email.");
       return;
@@ -47,16 +47,14 @@ const Signup = () => {
           email,
           password,
           role,
-          email,
           alias_email: role === "professor" ? aliasEmail : undefined,
         }),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Sign-up failed.");
+      if (!response.ok) throw new Error(data.message || "Failed to send verification code.");
 
-      alert("Sign-up successful! Redirecting...");
-      navigate(role === "professor" ? "/professor_dashboard" : "/student_dashboard");
+      navigate("/verify-email", { state: { email, role, aliasEmail } });
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -82,15 +80,7 @@ const Signup = () => {
           <input type="email" id="signup-email" placeholder="Enter your @drexel.edu email" value={email} onChange={(e) => setEmail(e.target.value)} required />
 
           <label htmlFor="signup-password">Password</label>
-          <div className="password-container">
-            <input type="password" id="signup-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <span className="password-toggle" onClick={() => {
-              const input = document.getElementById("signup-password");
-              input.type = input.type === "password" ? "text" : "password";
-            }}>
-              👁
-            </span>
-          </div>
+          <input type="password" id="signup-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
           {role === "professor" && (
             <>
@@ -99,30 +89,21 @@ const Signup = () => {
             </>
           )}
 
-          <div id="signup-error-message" className="error-message"></div>
-
-          <button type="submit" disabled={!isValidDrexelEmail(email) || password.length < 8}>
-            Sign Up
-          </button>
+          <button type="submit">Sign Up</button>
         </form>
 
+        <button onClick={() => navigate("/")} className="back-button">← Back to Login</button>
 
-        <button onClick={() => navigate("/")} className="back-button">
-          ← Back to Login
-        </button>
         <p className="signup-text">
           {role === "student" ? (
-            <a href="#" onClick={() => setRole("professor")}>
-              Are you a professor? Click here.
-            </a>
+            <a href="#" onClick={() => setRole("professor")}>Are you a professor? Click here.</a>
           ) : (
-            <a href="#" onClick={() => setRole("student")}>
-              Signing up as professor. Click to switch back to student.
-            </a>
+            <a href="#" onClick={() => setRole("student")}>Signing up as professor? Click to switch back.</a>
           )}
         </p>
       </div>
     </div>
   );
 };
+
 export default Signup;

@@ -51,6 +51,6 @@ const initDatabase = async () => {
 };
 
 // run schema setup 
-setTimeout(initDatabase, 3000);
+setTimeout(initDatabase, 3001);
 
 module.exports = pool;

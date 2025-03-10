@@ -5,8 +5,11 @@ const pool = require("../db");
 const { body, validationResult } = require("express-validator");
 const axios = require("axios");
 const { chromium } = require("playwright");
+const sgMail = require("@sendgrid/mail");
+const crypto = require("crypto");
 
 require("dotenv").config();
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const router = express.Router();
 
@@ -75,105 +78,168 @@ router.get("/user", authenticateToken, async (req, res) => {
     }
 });
 
-
-router.post(
-  "/signup",
-  [
+router.post("/signup", [
     body("first_name").notEmpty(),
     body("last_name").notEmpty(),
     body("email").isEmail().matches(/@drexel\.edu$/),
     body("password").isLength({ min: 8 }),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ message: "Invalid input", errors: errors.array() });
-    }
-
+    body("role").isIn(["student", "professor"]),
+    body("alias_email").optional().isEmail().matches(/@drexel\.edu$/)
+], async (req, res) => {
     const { first_name, last_name, email, password, role, alias_email } = req.body;
+
+    try {
+        const existingUser = await pool.query("SELECT user_id FROM Users WHERE email = $1", [email]);
+        if (existingUser.rows.length > 0) {
+            return res.status(400).json({ message: "Email is already registered." });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationExpires = new Date();
+        verificationExpires.setMinutes(verificationExpires.getMinutes() + 10);
+
+        await pool.query(
+            `INSERT INTO EmailVerifications (email, first_name, last_name, password_hash, role, alias_email, verification_code, expires_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [email, first_name, last_name, hashedPassword, role, alias_email, verificationCode, verificationExpires]
+        );
+
+        await sgMail.send({
+            to: email,
+            from: "verify@dragoninsight.us",
+            subject: "Your Verification Code - Dragon Insight",
+            html: `<p>Your verification code is: <strong>${verificationCode}</strong></p><p>This code will expire in 10 minutes.</p>`,
+        });
+
+        res.status(200).json({ message: "Verification code sent. Please check your inbox." });
+    } catch (error) {
+        res.status(500).json({ message: "Error sending verification code", error: error.message });
+    }
+});
+
+router.post("/verify-code", [
+    body("email").isEmail().matches(/@drexel\.edu$/),
+    body("code").isLength({ min: 6, max: 6 }).isNumeric()
+], async (req, res) => {
+    const { email, code } = req.body;
+
+    try {
+        const result = await pool.query(
+            "SELECT * FROM EmailVerifications WHERE email = $1 AND verification_code = $2 AND expires_at > NOW()",
+            [email, code]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({ message: "Invalid or expired verification code." });
+        }
+
+        const { first_name, last_name, password_hash, role, alias_email } = result.rows[0];
+
+        if (role === "student") {
+            await pool.query(
+                `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
+                [first_name, last_name, email.split("@")[0], email, password_hash, role]
+            );
+
+            await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
+            return res.status(201).json({ message: "Account created successfully!", role });
+        }
+
+        // Start verifying professor email via scraping
+        const isVerified = await verifyProfessorEmail(email, alias_email);
+        
+        // Remove the professor's entry from EmailVerifications after scraping
+        await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
+
+        if (!isVerified) {
+            return res.status(403).json({ message: "Professor verification failed. Email not found in faculty directory." });
+        }
+
+        // Create the professor account if verified
+        const professor = await pool.query(
+            `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+             VALUES ($1, $2, $3, $4, $5, 'professor') RETURNING user_id, role`,
+            [first_name, last_name, email.split("@")[0], email, password_hash]
+        );
+
+        const token = jwt.sign({ user_id: professor.rows[0].user_id, role: "professor" }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+
+        res.status(201).json({ message: "Professor verified and logged in!", role: "professor" });
+    } catch (error) {
+        res.status(500).json({ message: "Error verifying code", error: error.message });
+    }
+});
+
+
+
+
+router.post("/create-account", [
+    body("first_name").notEmpty(),
+    body("last_name").notEmpty(),
+    body("email").isEmail().matches(/@drexel\.edu$/),
+    body("password").isLength({ min: 8 })
+], async (req, res) => {
+    const { first_name, last_name, email, password, role } = req.body;
     const username = email.split("@")[0];
 
     try {
-      // Verify professor email if role is professor
-      if (role === "professor") {
-        if (!alias_email) {
-          return res.status(400).json({ message: "Alias email is required for professor signup." });
+        // Ensure email has been verified
+        const existingVerification = await pool.query("SELECT email FROM EmailVerifications WHERE email = $1", [email]);
+        if (existingVerification.rows.length > 0) {
+            return res.status(400).json({ message: "Please verify your email before creating an account." });
         }
 
-        const isVerified = await verifyProfessorEmail(email, alias_email);
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        if (!isVerified) {
-          return res.status(403).json({ message: "Professor email verification failed." });
-        }
-      }
+        // Insert the user into the database
+        await pool.query(
+            `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
+            [first_name, last_name, username, email, hashedPassword, role]
+        );
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const result = await pool.query(
-        "INSERT INTO Users (first_name, last_name, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, role",
-        [first_name, last_name, username, email, hashedPassword, role]
-      );
-
-      res.status(201).json({ message: "User registered successfully", role: result.rows[0].role });
+        res.status(201).json({ message: "Account created successfully! You can now log in." });
     } catch (error) {
-      console.error("Signup Error:", error);
-
-      if (error.code === "23505") {
-        return res.status(400).json({ message: "Email or username already exists." });
-      }
-
-      res.status(500).json({ message: "Error signing up", error: error.message });
+        console.error("Account Creation Error:", error);
+        res.status(500).json({ message: "Error creating account", error: error.message });
     }
-  }
-);
-
-router.post("/verify-professor", async (req, res) => {
-  const { email1, email2 } = req.body;
-
-  if (!email1 || !email2) {
-      return res.status(400).json({ message: "Both professor email addresses are required." });
-  }
-
-  const isVerified = await verifyProfessorEmail(email1, email2);
-
-  if (isVerified) {
-      res.json({ message: "Professor verified successfully!" });
-  } else {
-      res.status(403).json({ message: "Professor verification failed. Email not found." });
-  }
 });
 
+
+  
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  try {
-    const userQuery = await pool.query("SELECT * FROM Users WHERE email = $1", [email]);
+    try {
+        const userQuery = await pool.query("SELECT * FROM Users WHERE email = $1", [email]);
 
-    if (userQuery.rows.length === 0) {
-      return res.status(401).json({ message: "Invalid email or password" });
+        if (userQuery.rows.length === 0) {
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+        const user = userQuery.rows[0];
+
+        const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!passwordMatch) {
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+        const token = jwt.sign({ user_id: user.user_id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+
+        res.json({ message: "Login successful", role: user.role });
+    } catch (error) {
+        console.error("Login Error:", error);
+        res.status(500).json({ message: "Error logging in", error: error.message });
     }
-
-    const user = userQuery.rows[0];
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
-
-    if (!passwordMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const token = jwt.sign({ user_id: user.user_id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
-
-    res.json({ message: "Login successful", role: user.role });
-  } catch (error) {
-    res.status(500).json({ message: "Error logging in", error: error.message });
-  }
 });
+
 
 router.post("/logout", (req, res) => {
     res.clearCookie("token", {
@@ -183,6 +249,9 @@ router.post("/logout", (req, res) => {
     });
     res.json({ message: "Logged out successfully" });
   });
+  
+
+
   
 
 module.exports = router;
