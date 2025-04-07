@@ -148,7 +148,18 @@ router.post("/verify-code", [
         }
 
         // Start verifying professor email via scraping
-        const isVerified = await verifyProfessorEmail(email, alias_email);
+        //const isVerified = await verifyProfessorEmail(email, alias_email);
+        //TEMPORARY - override and accept following emails as professors.
+        const autoVerifiedEmails = ["snd63@drexel.edu", "np842@drexel.edu", "am4529@drexel.edu", "mar558@drexel.edu", "ll927@drexel.edu", "ll927@drexel.edu"];
+        let isVerified = false;
+
+        if (autoVerifiedEmails.includes(email.toLowerCase())) {
+            console.log(`Bypassing verification for whitelisted email: ${email}`);
+            isVerified = true;
+        } else {
+            isVerified = await verifyProfessorEmail(email, alias_email);
+        }
+
         
         // Remove the professor's entry from EmailVerifications after scraping
         await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
