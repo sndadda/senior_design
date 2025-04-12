@@ -51,7 +51,7 @@ const StudentDashboard = ({ setUser }) => {
       <div className="dashboard-header">
         <h2>Student Dashboard</h2>
         <p>Welcome, {user.first_name}!</p>
-        <button className="logout-btn" onClick={handleLogout}>Logout</button>
+  
       </div>
 
       {/* 🔹 Survey Performance Section */}

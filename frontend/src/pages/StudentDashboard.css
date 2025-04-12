@@ -1,22 +1,13 @@
-/* 🌍 Dashboard Layout */
+/*  Dashboard Layout */
 .dashboard-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
     background-color: #f7f7f7;
     font-family: Arial, sans-serif;
   }
   
-  /* 🔵 Navigation Bar */
-  .dashboard-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #2c3e50;
-    color: white;
-    padding: 15px 30px;
-  }
-  
+
   .dashboard-nav h2 {
     margin: 0;
   }
