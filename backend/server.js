@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
+const professorRoutes = require("./routes/professorRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use(helmet()); 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/professor", professorRoutes);
 
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
