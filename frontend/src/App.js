@@ -7,6 +7,7 @@ import Signup from "./pages/Signup";
 import StudentDashboard from "./pages/StudentDashboard";
 import ProfessorDashboard from "./pages/ProfessorDashboard";
 import StudentEvaluation from "./pages/StudentEvaluation";
+import ProfessorSurveyCreation from "./pages/ProfessorSurveyCreation";
 import Navbar from "./components/Navbar";
 import VerifyEmail from "./pages/VerifyEmail";
 
@@ -55,6 +56,7 @@ function App() {
           <Route path="/student_evaluation" element={user?.role === "student" ? <StudentEvaluation setUser={setUser} /> : <Navigate to="/" />} />    
           <Route path="/professor_dashboard" element={user?.role === "professor" ? <ProfessorDashboard setUser={setUser} /> : <Navigate to="/" />} />
 		      <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/professor_survey_creation" element={user?.role === "professor" ? <ProfessorSurveyCreation setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
