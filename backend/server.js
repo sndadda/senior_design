@@ -4,10 +4,11 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
+const professorRoutes = require("./routes/professorRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8001;
 
 app.use(cors({
     origin: "http://10.246.250.47:3000",
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use(helmet()); 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/professor", professorRoutes);
 
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
