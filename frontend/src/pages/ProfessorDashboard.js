@@ -15,10 +15,17 @@ const ProfessorDashboard = ({ setUser }) => {  // get setUser from props
     }
   };
 
+  const handleNavigateToEvaluation = () => {
+    navigate("/professor_survey_creation");
+  };
+
   return (
     <div>
       <h2>Professor Dashboard</h2>
       <p>Welcome, professor!</p>
+      
+      {/*Navigate to Survey Creation Page */}
+      <button className="evaluation-btn" onClick={handleNavigateToEvaluation}>Create Eavluation Survey</button>
       <button onClick={handleLogout}>Logout</button> 
     </div>
   );
