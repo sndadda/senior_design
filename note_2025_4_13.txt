@@ -1,0 +1,71 @@
+
+
+
+
+
+CREATE TABLE IF NOT EXISTS Team (
+    team_id VARCHAR(100) PRIMARY KEY,
+    title VARCHAR(100),
+    description TEXT,
+    group_set VARCHAR(100),
+    available VARCHAR(50),
+    personalization VARCHAR(50),
+    self_enroll VARCHAR(50),
+    max_enrollment INTEGER,
+    show_members VARCHAR(50),
+    sign_up_from_group_list VARCHAR(50),
+    sign_up_name VARCHAR(255),
+    sign_up_instructions TEXT
+);
+
+
+CREATE TABLE IF NOT EXISTS TeamMembers (
+    team_id VARCHAR(100) REFERENCES Team(team_id) ON DELETE CASCADE,
+    stud_id INT REFERENCES Users(user_id) ON DELETE CASCADE,
+    PRIMARY KEY (team_id, stud_id)
+);
+
+#part 1  for database
+#1
+modify 2 table team_id from SERIAL to VARCHAR(100) in lu_schema.sql
+because team_id(group_code) is string/CHAR ; 
+
+#2 
+Team table add some columns in lu_schema.sql , because the template csv file from professor has the added columns 
+but original table didnot have .
+
+#part 2 for frontend
+
+#1 
+add  CsvUploader.js  for upload csv file for teams , students , servey seprately
+
+#2 
+modify ProfessorDashboard.js , import my CsvUploader component and use it;
+
+
+#part 3 for backend
+
+#1 
+add uploadRoutes.js for upload csv file for teams , students , servey seprately
+
+#2 
+modify server.js , import my uploadRoutes component and use it;
+
+#3 
+
+
+modify server.js ,add bellow code for allow cross origin request 
+because  backend and frontend have different origin/port 8000 and 3000
+
+app.use(cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+    methods: "GET,POST,PUT,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type,Authorization"
+}));
+
+
+
+
+
+

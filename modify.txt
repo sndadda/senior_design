@@ -1,0 +1,66 @@
+
+updated notes(3/30/2025):
+1. A new file ‘uploadRoutes.js’ has been added to the backend to handle the data upload and storage logic for the survey form. This file is located in the uploads directory.
+   The data is stored in the ‘serveyforms’ table.
+   The route is used in ‘server.js’ via ‘app.use’.
+   Two new dependencies were added: ‘npm install multer csv-parser’.
+
+
+2. A new file ‘CsvUploader.js’ has been added to the frontend to handle file uploads.
+   It uploads files to the API endpoint defined in ‘uploadRoutes.js’.
+   The ‘CsvUploader.js’ component is then placed and loaded into the ‘ProfessorDashboard.js’ page.
+   ‘ProfessorDashboard.js’ imports and uses the ‘CsvUploader.js’ component.
+
+3. The database is managed with DBeaver and uses PostgreSQL.
+
+4.The frontend is built with React, and the backend uses Node.js v20.
+
+
+
+
+Questions that I have(3/30/2025):
+
+1. About the database .sql schema:
+Which version of the .sql file should be considered to use, 1. on GitHub “schema.sql” or 2. the one (Dragon_Insight_DB.sql) on discord chart?
+
+If the one on the main branch is correct, then there might be some issue.
+For example: In SurveyQuestions, the rating is only linked to survey_form_id and question_id. But there's no link to section_id, so we can't tell which section the question belongs to.
+
+2. Is there a shared/staging database we should be using?
+
+3. Code version:
+Is the main branch up to date?
+
+Should I created my local branch based on main. Is that the right approach?
+
+4. Requirements clarification (Import/Export):
+What are the detailed use cases for data import and export?
+
+Would it be helpful to ask the stakeholder to provide an example Excel file?
+
+Which tables need to be imported/exported?
+
+Are there any CSV templates available for the import/export process?
+
+
+
+
+
+
+
+
+
+
+
+Notes just for me:
+1. The database configuration file has been changed to use the local environment.
+The backend CORS configuration has also been updated for local development:
+
+app.use(cors({
+    origin: "http://localhost:3001", // Backend CORS config updated for local use. After restarting the computer, changed to port 3000.
+    credentials: true,
+    methods: "GET,POST,PUT,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type,Authorization"
+}));
+
+

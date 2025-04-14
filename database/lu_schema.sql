@@ -44,16 +44,29 @@ CREATE TABLE IF NOT EXISTS Enrollments (
 
 
 CREATE TABLE IF NOT EXISTS Team (
-    team_id SERIAL PRIMARY KEY,
-    team_name VARCHAR(100) NOT NULL
+    team_id VARCHAR(100) PRIMARY KEY,
+    title VARCHAR(100),
+    description TEXT,
+    group_set VARCHAR(100),
+    available VARCHAR(50),
+    personalization VARCHAR(50),
+    self_enroll VARCHAR(50),
+    max_enrollment INTEGER,
+    show_members VARCHAR(50),
+    sign_up_from_group_list VARCHAR(50),
+    sign_up_name VARCHAR(255),
+    sign_up_instructions TEXT
 );
+
 
 
 CREATE TABLE IF NOT EXISTS TeamMembers (
-    team_id INT REFERENCES Team(team_id) ON DELETE CASCADE,
-    stud_id INT REFERENCES Users(user_id) ON DELETE CASCADE,
+    team_id VARCHAR(100) ,
+    stud_id INT ,
     PRIMARY KEY (team_id, stud_id)
 );
+
+
 
 CREATE TABLE IF NOT EXISTS SurveyForms (
     survey_form_id SERIAL PRIMARY KEY,

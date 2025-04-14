@@ -1,0 +1,25 @@
+
+
+npm install multer csv-parser
+
+
+
+# modify frontend code need rebuild
+npm run build
+
+
+# start frontend
+cd frontend
+npm start
+http://localhost:3000
+
+123@drexel.edu
+123456
+
+456@drexel.edu
+123456789
+
+# start backend
+cd backend
+node server.js
+
