@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import "./ProfessorDashboard.css"; // Import styles
 
 const ProfessorDashboard = ({ setUser }) => {  // get setUser from props
   const navigate = useNavigate();
