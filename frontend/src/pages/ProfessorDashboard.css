@@ -1,96 +1,72 @@
-/*  Dashboard Layout */
-.dashboard-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #f7f7f7;
-    font-family: Arial, sans-serif;
-  }
-  
+/* General Layout */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f7f7f7;
+}
 
-  .dashboard-nav h2 {
-    margin: 0;
+h2, p {
+  text-align: center;
+  margin: 10px 0;
+}
+
+/* Container for Dashboard Buttons */
+div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Dashboard Buttons */
+button {
+  background-color: #2c6bed;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin: 8px 0;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #2356c6;
+}
+
+/* Logout Button */
+.logout-btn {
+  background-color: #d9534f;
+}
+
+.logout-btn:hover {
+  background-color: #c9302c;
+}
+
+/* Chart Section */
+.chart-section {
+  margin-top: 30px;
+  padding: 25px;
+  background: #ffffff;
+  border-radius: 10px;
+  max-width: 900px;
+  width: 100%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.chart-section h3 {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .chart-section {
+    padding: 15px;
   }
-  
-  .nav-links {
-    display: flex;
-    gap: 15px;
+
+  button {
+    width: 90%;
   }
-  
-  .nav-links button {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  
-  .nav-links button:hover {
-    text-decoration: underline;
-  }
-  
-  .logout-btn {
-    background: #e74c3c;
-    border: none;
-    color: white;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 5px;
-    font-size: 14px;
-  }
-  
-  .logout-btn:hover {
-    background: #c0392b;
-  }
-  
-  /* 📋 Dashboard Content */
-  .dashboard-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    padding: 30px;
-  }
-  
-  /* 📦 Dashboard Cards */
-  .dashboard-card {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    text-align: center;
-  }
-  
-  .dashboard-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-  }
-  
-  .dashboard-card h3 {
-    margin-bottom: 10px;
-    font-size: 18px;
-  }
-  
-  .dashboard-card p {
-    color: #555;
-    font-size: 14px;
-  }
-  
-  /* 📱 Responsive Design */
-  @media (max-width: 768px) {
-    .dashboard-content {
-      grid-template-columns: 1fr;
-    }
-  
-    .dashboard-nav {
-      flex-direction: column;
-      gap: 10px;
-    }
-  
-    .nav-links {
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-  }
-  
+}
