@@ -24,9 +24,14 @@ ChartJS.register(
   Legend
 );
 
-const ProfessorDashboard = ({ setUser }) => {
+const ProfessorDashboard = ({ setUser }) => {  // Get setUser from props
   const navigate = useNavigate();
   const [chartData, setChartData] = useState(null);
+
+  // Dropdown state
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedTerm, setSelectedTerm] = useState("");
+  const [selectedSurveyType, setSelectedSurveyType] = useState("");
 
   // Handle logout logic
   const handleLogout = async () => {
@@ -40,45 +45,50 @@ const ProfessorDashboard = ({ setUser }) => {
     }
   };
 
-  // Navigate to other pages
-  const handleNavigateToEvaluation = () => navigate("/professor_survey_creation");
-  const handleNavigateToCourseCreation = () => navigate("/course_creation");
-  const handleNavigateToGrades = () => navigate("/grades");
+  // Navigate to survey creation page
+  const handleNavigateToEvaluation = () => {
+    navigate("/professor_survey_creation");
+  };
 
-  // Fetch chart data from backend (replace URL when ready)
+  // Navigate to course creation page
+  const handleNavigateToCourseCreation = () => {
+    navigate("/course_creation");
+  };
+
+  // Navigate to grades page
+  const handleNavigateToGrades = () => {
+    navigate("/grades");
+  };
+
+  // Fetch chart data from backend (placeholder API for now)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Replace this endpoint with your real backend API
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/survey-averages`);
-        const backendData = response.data; // Expecting { labels: [], scores: [] }
+        const backendData = response.data;
 
         setChartData({
           labels: backendData.labels,
-          datasets: [
-            {
-              label: "Average Score",
-              data: backendData.scores,
-              borderColor: "#2c6bed",
-              backgroundColor: "rgba(44, 107, 237, 0.2)",
-              tension: 0.4,
-            },
-          ],
+          datasets: [{
+            label: "Average Score",
+            data: backendData.scores,
+            borderColor: "#2c6bed",
+            backgroundColor: "rgba(44, 107, 237, 0.2)",
+            tension: 0.4,
+          }],
         });
       } catch (error) {
         console.error("Failed to fetch chart data:", error);
-        // Use fallback static data
+        // Fallback data for testing
         setChartData({
           labels: ["Survey 1", "Survey 2", "Survey 3"],
-          datasets: [
-            {
-              label: "Average Score",
-              data: [78, 85, 90],
-              borderColor: "#2c6bed",
-              backgroundColor: "rgba(44, 107, 237, 0.2)",
-              tension: 0.4,
-            },
-          ],
+          datasets: [{
+            label: "Average Score",
+            data: [78, 85, 90],
+            borderColor: "#2c6bed",
+            backgroundColor: "rgba(44, 107, 237, 0.2)",
+            tension: 0.4,
+          }],
         });
       }
     };
@@ -105,13 +115,17 @@ const ProfessorDashboard = ({ setUser }) => {
       <h2>Professor Dashboard</h2>
       <p>Welcome, professor!</p>
 
-      {/* Navigate to other tools */}
+      {/* Navigate to survey creation page */}
       <button className="evaluation-btn" onClick={handleNavigateToEvaluation}>
         Create Evaluation Survey
       </button>
+
+      {/* Navigate to course creation page */}
       <button className="course-creation-btn" onClick={handleNavigateToCourseCreation}>
         Course Creation
       </button>
+
+      {/* Navigate to grades page */}
       <button className="grades-btn" onClick={handleNavigateToGrades}>
         Grades
       </button>
@@ -120,6 +134,65 @@ const ProfessorDashboard = ({ setUser }) => {
       <button className="logout-btn" onClick={handleLogout}>
         Logout
       </button>
+
+      {/* Dropdown Filters */}
+      <div className="grades-filters">
+        <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)}>
+          <option value="">Select Course</option>
+          <option value="CS461">CS461</option>
+          <option value="CS350">CS350</option>
+        </select>
+
+        <select value={selectedTerm} onChange={(e) => setSelectedTerm(e.target.value)}>
+          <option value="">Select Term</option>
+          <option value="Fall 24-25">Fall 24-25</option>
+          <option value="Spring 24">Spring 24</option>
+        </select>
+
+        <select value={selectedSurveyType} onChange={(e) => setSelectedSurveyType(e.target.value)}>
+          <option value="">Select Survey</option>
+          <option value="Midterm">Midterm</option>
+          <option value="Final">Final</option>
+        </select>
+      </div>
+
+      {/* Grade Meta Info */}
+      <div className="grades-meta">
+        <p><strong>Begin Date:</strong> 08/13/2024 10:00</p>
+        <p><strong>Due Date:</strong> 08/19/2024 23:59</p>
+      </div>
+
+      {/* Grades Table */}
+      <div className="grades-table-wrapper">
+        <table className="grades-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Evaluations</th>
+              <th>Self-Eval</th>
+              <th>Score</th>
+              <th>Feedback</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Blank rows - backend data to be added later */}
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       {/* Chart Section */}
       <div className="chart-section">
