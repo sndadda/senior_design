@@ -1,7 +1,6 @@
 import "./ProfessorSurveyCreation.css";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
 const QUESTION_TYPES = {
   SHORT_ANSWER: "Short Answer",
@@ -9,38 +8,24 @@ const QUESTION_TYPES = {
 };
 
 const ProfessorSurveyCreation = () => {
-  // Deals with saving changes locally for testing (should be changed for future) 
-  // Changes are only discarded when pressing 'Discard Survey' button
-  const [title, setTitle] = useState(() => localStorage.getItem("survey_title") || "");
-  const [description, setDescription] = useState(() => localStorage.getItem("survey_description") || "");
-  const [questions, setQuestions] = useState(() => {
-    const saved = localStorage.getItem("survey_questions");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [questions, setQuestions] = useState([]);
   
   const [showModal, setShowModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
-  const navigate = useNavigate();
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [savedSurveys, setSavedSurveys] = useState([]);
+  const [surveys, setSurveys] = useState([]);
+  const [surveyToDelete, setSurveyToDelete] = useState(null);
+  const [showOverwriteModal, setShowOverwriteModal] = useState(false);
 
-  // Deals with saving changes locally for testing (should be changed for future)
-  // Changes are only discarded when pressing 'Discard Survey' button
-  useEffect(() => {
-    localStorage.setItem("survey_title", title);
-  }, [title]);
-  
-  useEffect(() => {
-    localStorage.setItem("survey_description", description);
-  }, [description]);
-  
-  useEffect(() => {
-    localStorage.setItem("survey_questions", JSON.stringify(questions));
-  }, [questions]);
+  const navigate = useNavigate();
 
   const openModal = () => setShowModal(true);
   const closeModal = () => setShowModal(false);
 
   const [questionToRemove, setQuestionToRemove] = useState(null);
-
 
   // Add a new question of the given question type
   const addQuestion = (type) => {
@@ -76,11 +61,10 @@ const ProfessorSurveyCreation = () => {
   };
 
   // Add a choice to a multiple‑choice question
-  // There is a max limit of 5 choice (possibly change?)
   const addChoice = (id) => {
     setQuestions((qs) =>
       qs.map((q) =>
-        q.id === id && q.choices.length < 5
+        q.id === id && q.choices.length < 5 // There is a max limit of 5 choices
           ? { ...q, choices: [...q.choices, ""] }
           : q
       )
@@ -98,24 +82,124 @@ const ProfessorSurveyCreation = () => {
     );
   };
 
-  const handleSave = () => {
-    // TODO: Add functionality for saving survey information to backend in future
-    console.log({ title, description, questions });
+  // Deals with saving to DB
+  const handleSave = async (forceOverwrite = false) => {
+    const payload = {
+      title,
+      instructions: description,
+      questions,
+      forceOverwrite // If a user wants to save a survey but one with same title already exists in DB
+    };
+  
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/professorsurvey/save`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+  
+      const text = await response.text();
+  
+      try {
+        const data = JSON.parse(text);
+  
+        if (response.status === 409 && !forceOverwrite) {
+          // calls the overwite modal to ask user if they want to overwite survey data
+          setShowOverwriteModal(true);
+        } 
+        else if (response.ok) {
+          alert(data.message || "Survey saved!");
+          navigate("/professor_dashboard");
+        }  
+        else {
+          alert(data.message || "Error saving survey.");
+        }
+      } 
+      catch (jsonErr) {
+        console.error("Invalid JSON response from server:", text);
+        alert("Server error: invalid response");
+      }
+    } 
+    catch (error) {
+      console.error("Network or server error:", error);
+      alert("Something went wrong while saving.");
+    }
+  };
+  
+  // Force overwrite and close modal
+  const handleSaveWithOverwrite = () => {
+    handleSave(true);
+    setShowOverwriteModal(false);
+  };
+  
+  // Close the modal without saving
+  const handleCancelOverwrite = () => {
+    setShowOverwriteModal(false);
   };
 
-  const handleDiscardSurvey = () => {
-    setTitle("");
-    setDescription("");
-    setQuestions([]);
+  const openManageModal  = () => {
+    setShowLoadModal(true);
+    fetchSavedSurveys();
+  };
+
+  // Gets all surveys stored in database for user
+  const fetchSavedSurveys = async () => {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/professorsurvey/list`, {
+      credentials: "include"
+    });
+    if (res.ok) {
+      const list = await res.json();
+      setSavedSurveys(list);
+    } else {
+      const error = await res.text();
+      console.error("Could not fetch saved surveys:", error);
+    }
+  };
+  
+  const closeLoadModal = () => setShowLoadModal(false);
     
-    // Removes locally saved changes
-    localStorage.removeItem("survey_title");
-    localStorage.removeItem("survey_description");
-    localStorage.removeItem("survey_questions");
-    setShowDiscardModal(false);
-    navigate("/professor_dashboard");
+  // Loads from DB into survey creation page
+  const loadSurvey = async (id) => {
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/professorsurvey/load/${id}`,
+      { credentials: "include" }
+    );
+    if (!res.ok) return alert("Failed to load survey");
+    const data = await res.json();
+
+    // load in from data base and map information
+    const loadedQs = data.questions.map((q) => ({
+      id:   q.question_id,
+      type: q.question_type === "text"
+              ? QUESTION_TYPES.SHORT_ANSWER
+              : QUESTION_TYPES.MULTIPLE_CHOICE,
+      text:    q.question_text,
+      choices: q.choices
+    }));
+
+    setTitle(data.form_title);
+    setDescription(data.instructions);
+    setQuestions(loadedQs);
+    closeLoadModal();
   };
 
+  // Deletes a survey from the DB
+  const handleDeleteSurvey = async (id) => {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/professorsurvey/delete/${id}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    if (res.ok) {
+      setSurveys(surveys.filter((s) => s.id !== id));
+      setSurveyToDelete(null);
+      fetchSavedSurveys();
+    } else {
+      alert("Failed to delete survey");
+    }
+  };  
+  
+  // Removes a question from the survey 
   const handleRemoveQuestion = (index) => {
     setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
@@ -129,10 +213,10 @@ const ProfessorSurveyCreation = () => {
         <div className="modal-content">
           <p>{message}</p>
           <div className="modal-buttons">
-            <button onClick={onConfirm} className="confirm-remove">
-              Yes, Discard
+            <button onClick={onConfirm} className="confirm-remove-question">
+              Yes, Discard Question
             </button>
-            <button onClick={onCancel} className="cancel-remove">
+            <button onClick={onCancel} className="cancel-remove-question">
               Cancel
             </button>
           </div>
@@ -149,7 +233,16 @@ const ProfessorSurveyCreation = () => {
   const handleCancelRemove = () => {
     setQuestionToRemove(null);
   };
- 
+
+    // Clears all data from current survey creation page and goes back to dashboard
+    const handleDiscardSurvey = () => {
+      setTitle("");
+      setDescription("");
+      setQuestions([]);
+      setShowDiscardModal(false);
+      navigate("/professor_dashboard");
+    };
+  
 
   return (
     <div className="creation-container">
@@ -277,12 +370,16 @@ const ProfessorSurveyCreation = () => {
       <div className="creation-actions">
         <button
           onClick={() => setShowDiscardModal(true)}
-          className="discard-survey-btn"
+          className="discard-changes-btn"
         >
-          Discard Survey
+          Discard Changes
         </button>
 
-        <button onClick={handleSave} className="save-survey-btn">
+        <button onClick={openManageModal} className="manage-survey-btn">
+          Manage Survey's
+        </button>
+
+        <button className="save-survey-btn" onClick={() => handleSave()}>
           Save Survey
         </button>
       </div>
@@ -318,17 +415,19 @@ const ProfessorSurveyCreation = () => {
       {showDiscardModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <p>Are you sure you want to discard this survey? This cannot be undone.</p>
+            <p>Are you sure you want to discard the current changes made to this survey? 
+            If you do not want to lose these changes, please save instead.</p>
+            <p>This action cannot be undone.</p>
             <div className="modal-buttons">
               <button
                 onClick={handleDiscardSurvey}
-                className="confirm-remove"
+                className="confirm-discard"
               >
-                Yes, Discard Survey
+                Yes, discard changes made to survey
               </button>
               <button
                 onClick={() => setShowDiscardModal(false)}
-                className="cancel-remove"
+                className="cancel-discard"
               >
                 Cancel
               </button>
@@ -336,9 +435,90 @@ const ProfessorSurveyCreation = () => {
           </div>
         </div>
       )}
+
+      {/* Modal to display survey's that can be loaded in */}
+      {/* This shows up when pressing the "Manage Survey's" button */}
+      {showLoadModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Choose a Survey to Load or Delete</h3>
+            <ul className="survey-list">
+              {savedSurveys.map((s) => (
+                <div className="manaage-survey-buttons">
+                  <li key={`${s.id}-${s.title}`}>
+                    <button
+                      className="survey-list-item"
+                      onClick={() => loadSurvey(s.id)}
+                    >
+                      {`Load: ${s.title}`}
+                    </button>
+                    <button
+                      onClick={() => setSurveyToDelete(s)}
+                      className="X-del-survey-button"
+                    >
+                      ✕ {`Delete: ${s.title}`}
+                    </button>
+                  </li>
+                </div>
+              ))}
+            </ul>
+            <button onClick={closeLoadModal} className="modal-close-btn">
+              Cancel
+            </button>
       
+            {/* Nested modal for deleting a survey that is saved */}
+            {/* This shows at the bottom of the load modal when the "X" button is pressed */}
+            {surveyToDelete && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <h2 className="delete-header">Delete Survey</h2>
+                  <p className="mb-4">
+                    Are you sure you want to delete{" "}
+                    <strong>{surveyToDelete.title}</strong>?
+                  </p>
+                  <div className="delete-buttons">
+                    <button
+                      onClick={() => handleDeleteSurvey(surveyToDelete.id)}
+                      className="confirm-del-survey-button"
+                    >
+                      Delete
+                    </button>
+
+                    <button
+                      onClick={() => setSurveyToDelete(null)}
+                      className="cancel-del-survey-button"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Modal to display the overwrite modal when a user wants to save a survey with the same title*/}
+      {/* as another survey in the DB that was created by the user*/}
+      {showOverwriteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Survey already exists!</h3>
+            <p>Do you want to overwrite the existing survey?</p>
+            <div className="modal-buttons">
+              <button onClick={handleSaveWithOverwrite} className="confirm-overwrite">
+                Yes, overwrite existing survey
+              </button>
+              <button onClick={handleCancelOverwrite} className="cancel-overwrite">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+       
     </div>
-);
+  );
 
 };
 
