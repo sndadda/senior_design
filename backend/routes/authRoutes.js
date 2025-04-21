@@ -306,5 +306,5 @@ router.post("/logout", (req, res) => {
 
 
   
-
+router.authenticateToken = authenticateToken;
 module.exports = router;
