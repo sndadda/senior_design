@@ -111,7 +111,7 @@ const ProfessorDashboard = ({ setUser }) => {  // Get setUser from props
   };
 
   return (
-    <div>
+    <div className="professor-dashboard">
       <h2>Professor Dashboard</h2>
       <p>Welcome, professor!</p>
 
