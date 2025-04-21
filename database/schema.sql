@@ -100,6 +100,12 @@ CREATE TABLE IF NOT EXISTS SurveyQuestions (
     max_rating INT CHECK (max_rating BETWEEN 1 AND 10)
 );
 
+CREATE TABLE IF NOT EXISTS QuestionChoices (
+  choice_id SERIAL PRIMARY KEY,
+  question_id INT REFERENCES SurveyQuestions(question_id) ON DELETE CASCADE,
+  choice_text TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS SurveyResponses (
     response_id SERIAL PRIMARY KEY,
     survey_form_id INT REFERENCES SurveyForms(survey_form_id) ON DELETE CASCADE,
