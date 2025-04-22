@@ -129,14 +129,52 @@ router.post("/signup", [
     body("alias_email").optional().isEmail().matches(/@drexel\.edu$/)
 ], async (req, res) => {
     const { first_name, last_name, email, password, role, alias_email } = req.body;
+    const username = email.split("@")[0];
+    const bypassEmails = ["snd63@drexel.edu", "snd62@drexel.edu", "snd61@drexel.edu", "snd60@drexel.edu"];
 
     try {
         const existingUser = await pool.query("SELECT user_id FROM Users WHERE email = $1", [email]);
-        if (existingUser.rows.length > 0) {
-            return res.status(400).json({ message: "Email is already registered." });
+        const existingVerification = await pool.query("SELECT email FROM EmailVerifications WHERE email = $1", [email]);
+      
+        if (existingUser.rows.length > 0 || existingVerification.rows.length > 0) {
+          return res.status(400).json({ message: "Email is already registered or pending verification." });
         }
+      
 
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // TEMPORARY BYPASS for emails in the list to skip verif
+        if (bypassEmails.includes(email.toLowerCase())) {
+          const result = await pool.query(
+            `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id, role`,
+            [first_name, last_name, username, email, hashedPassword, role]
+          );
+        
+          const newUserId = result.rows[0].user_id;
+        
+          if (role === "student") {
+            const pending = await pool.query(
+              "SELECT section_id FROM PendingStudents WHERE username = $1",
+              [username]
+            );
+        
+            for (const row of pending.rows) {
+              await pool.query(
+                "INSERT INTO Enrollments (stud_id, section_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                [newUserId, row.section_id]
+              );
+            }
+        
+            await pool.query("DELETE FROM PendingStudents WHERE username = $1", [username]);
+          }
+        
+          const token = jwt.sign({ user_id: newUserId, role }, process.env.JWT_SECRET, { expiresIn: "1h" });
+          res.cookie("token", token, { httpOnly: true, secure: false, sameSite: "strict" });
+        
+          return res.status(201).json({ message: "Bypassed verification. Account created and logged in.", role });
+        }
+        
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         const verificationExpires = new Date();
         verificationExpires.setMinutes(verificationExpires.getMinutes() + 10);
@@ -179,15 +217,38 @@ router.post("/verify-code", [
         const { first_name, last_name, password_hash, role, alias_email } = result.rows[0];
 
         if (role === "student") {
-            await pool.query(
-                `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
-                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
-                [first_name, last_name, email.split("@")[0], email, password_hash, role]
+            const username = email.split("@")[0];
+          
+            const result = await pool.query(
+              `INSERT INTO Users (first_name, last_name, username, email, password_hash, role)
+               VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
+              [first_name, last_name, username, email, password_hash, role]
             );
-
+          
+            const newUserId = result.rows[0].user_id;
+          
+            // Auto-enroll in any pending courses
+            const pending = await pool.query(
+              "SELECT section_id FROM PendingStudents WHERE username = $1",
+              [username]
+            );
+          
+            for (const row of pending.rows) {
+              await pool.query(
+                "INSERT INTO Enrollments (stud_id, section_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                [newUserId, row.section_id]
+              );
+            }
+          
+            // Clean up pending records
+            await pool.query("DELETE FROM PendingStudents WHERE username = $1", [username]);
+          
+            // Clean up email verifications
             await pool.query("DELETE FROM EmailVerifications WHERE email = $1", [email]);
+          
             return res.status(201).json({ message: "Account created successfully!", role });
-        }
+          }
+          
 
         // Start verifying professor email via scraping
         //const isVerified = await verifyProfessorEmail(email, alias_email);

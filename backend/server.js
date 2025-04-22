@@ -24,4 +24,4 @@ app.use("/api/auth", authRoutes);
 app.use("/api/professor", professorRoutes);
 
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running at http://ip:${PORT}`));
