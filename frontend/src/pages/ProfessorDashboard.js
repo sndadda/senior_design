@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+// import CsvUploader component 
+import CsvUploader from "./CsvUploader";
 
 const ProfessorDashboard = ({ setUser }) => {  // get setUser from props
   const navigate = useNavigate();
@@ -18,7 +20,15 @@ const ProfessorDashboard = ({ setUser }) => {  // get setUser from props
   return (
     <div>
       <h2>Professor Dashboard</h2>
-      <p>Welcome, professor!</p>
+      <p>Welcome, Professor!</p>
+
+      <h3>Upload Survey CSV</h3>
+
+    {/* /* user my CsvUploader component  */ }
+      <CsvUploader />
+
+      <br />
+
       <button onClick={handleLogout}>Logout</button> 
     </div>
   );
