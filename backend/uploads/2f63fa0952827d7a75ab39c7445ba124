@@ -1,0 +1,5 @@
+user_id,first_name,last_name,username,email,password
+123,tom,jack,tom jack,123@drexel.edu,lu12345678
+222,lucy,xxx,lucty123,lu123@drexel.edu,lu12345678
+9099,lucy,xxx,xyz,xyz@drexel.edu,lu12345678
+ll927,lu,liu,ll927,ll927@drexel.edu,lu12345678
