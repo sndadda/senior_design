@@ -1,6 +1,7 @@
 import "./ProfessorSurveyCreation.css";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Select from 'react-select';
 
 const QUESTION_TYPES = {
   SHORT_ANSWER: "Short Answer",
@@ -19,11 +20,38 @@ const ProfessorSurveyCreation = () => {
   const [surveys, setSurveys] = useState([]);
   const [surveyToDelete, setSurveyToDelete] = useState(null);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [surveyToAssign, setSurveyToAssign] = useState(null);
+  const [selectedSavedSurvey, setSelectedSavedSurvey] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [showUnassignModal, setShowUnassignModal] = useState(false);
+  const [assignedStudents, setAssignedStudents] = useState([]);
+  const [selectedUnassignId, setSelectedUnassignId] = useState("");
 
   const navigate = useNavigate();
 
   const openModal = () => setShowModal(true);
   const closeModal = () => setShowModal(false);
+
+  // Used to get information for dropdown
+  const studentOptions = students.map((s) => ({
+    value: s.user_id,
+    label: `${s.first_name} ${s.last_name} (${s.email})`
+  }));
+
+  // Used to get information for dropdown
+  const surveyOptions = savedSurveys.map(s => ({
+    value: s.id,
+    label: s.title
+  }));
+
+  // Used to get information for dropdown
+  const unassignOptions = assignedStudents.map(s => ({
+    value: s.user_id,
+    label: `${s.first_name} ${s.last_name} (${s.email})`
+  }));
 
   const [questionToRemove, setQuestionToRemove] = useState(null);
 
@@ -157,7 +185,10 @@ const ProfessorSurveyCreation = () => {
     }
   };
   
-  const closeLoadModal = () => setShowLoadModal(false);
+  const closeLoadModal = () => {
+    setSelectedSavedSurvey("");
+    setShowLoadModal(false);
+  }
     
   // Loads from DB into survey creation page
   const loadSurvey = async (id) => {
@@ -234,15 +265,105 @@ const ProfessorSurveyCreation = () => {
     setQuestionToRemove(null);
   };
 
-    // Clears all data from current survey creation page and goes back to dashboard
-    const handleDiscardSurvey = () => {
-      setTitle("");
-      setDescription("");
-      setQuestions([]);
-      setShowDiscardModal(false);
-      navigate("/professor_dashboard");
-    };
+  // Clears all data from current survey creation page and goes back to dashboard
+  const handleDiscardSurvey = () => {
+    setTitle("");
+    setDescription("");
+    setQuestions([]);
+    setShowDiscardModal(false);
+    navigate("/professor_dashboard");
+  };
   
+  const handleOpenAssignModal = async (surveyId) => {
+    setSurveyToAssign(surveyId);
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/professorsurvey/students/list`, {
+      credentials: "include"
+    });
+    if (res.ok) {
+      const list = await res.json();
+      setStudents(list);
+      setSelectedStudentId("");
+      setShowAssignModal(true);
+    } else {
+      console.error("Failed to fetch students from DB");
+    }
+  };
+  
+  // For dealing with assigning
+  const handleAssignSurvey = async () => {
+    if (!selectedStudentId || !deadline) {
+      alert("Please select a student and deadline.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/professorsurvey/assign`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surveyId: surveyToAssign,
+          studentId: selectedStudentId,
+          deadline: deadline,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to assign survey in DB");
+      }
+
+      alert("Survey assigned successfully!");
+      setShowAssignModal(false);
+      setSelectedStudentId("");
+      setDeadline("");
+
+    } 
+    catch (err) {
+      console.error(err);
+      alert("An error occurred while assigning the survey.");
+    }
+  };
+
+  const handleOpenUnassignModal = async () => {
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/professorsurvey/assigned/${selectedSavedSurvey}`,
+      { credentials: "include" }
+    );
+    if (res.ok) {
+      const list = await res.json();
+      setAssignedStudents(list);
+      setSelectedUnassignId("");
+      setShowUnassignModal(true);
+    } else {
+      alert("Could not load assigned students");
+    }
+  };
+
+  // For dealing with unassigning
+  const handleUnassign = async () => {
+    if (!selectedUnassignId) {
+      alert("Please select a student to unassign");
+      return;
+    }
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/professorsurvey/unassign`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surveyId: selectedSavedSurvey,
+          studentId: selectedUnassignId
+        }),
+      }
+    );
+    if (res.ok) {
+      alert("Unassigned successfully");
+      setShowUnassignModal(false);
+    } else {
+      alert("Failed to unassign");
+    }
+  };
 
   return (
     <div className="creation-container">
@@ -441,55 +562,75 @@ const ProfessorSurveyCreation = () => {
       {showLoadModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Choose a Survey to Load or Delete</h3>
-            <ul className="survey-list">
-              {savedSurveys.map((s) => (
-                <div className="manaage-survey-buttons">
-                  <li key={`${s.id}-${s.title}`}>
-                    <button
-                      className="survey-list-item"
-                      onClick={() => loadSurvey(s.id)}
-                    >
-                      {`Load: ${s.title}`}
-                    </button>
-                    <button
-                      onClick={() => setSurveyToDelete(s)}
-                      className="X-del-survey-button"
-                    >
-                      ✕ {`Delete: ${s.title}`}
-                    </button>
-                  </li>
-                </div>
-              ))}
-            </ul>
-            <button onClick={closeLoadModal} className="modal-close-btn">
-              Cancel
-            </button>
+            <h3>Choose a Survey to Manage</h3>
       
-            {/* Nested modal for deleting a survey that is saved */}
-            {/* This shows at the bottom of the load modal when the "X" button is pressed */}
+            <div className="creation-field">
+              <label>Select a survey:</label>
+              <Select
+                className="prof-select-saved-survey"
+                options={surveyOptions}
+                value={surveyOptions.find(o => o.value === selectedSavedSurvey)}
+                onChange={opt => setSelectedSavedSurvey(opt.value)}
+                placeholder="-- pick one --"
+                maxMenuHeight={180}
+              />
+            </div>
+      
+            <div className="modal-buttons">
+              <button
+                disabled={!selectedSavedSurvey}
+                onClick={() => { loadSurvey(selectedSavedSurvey); }}
+                className="survey-button"
+              >
+                Load
+              </button>
+              <button
+                disabled={!selectedSavedSurvey}
+                onClick={() => handleOpenAssignModal(selectedSavedSurvey)}
+                className="survey-button"
+              >
+                Assign
+              </button>
+            
+              <button
+                disabled={!selectedSavedSurvey}
+                onClick={() => setSurveyToDelete(
+                  savedSurveys.find(s => s.id === parseInt(selectedSavedSurvey,10))
+                )}
+                className="survey-button delete-button"
+              >
+                Delete
+              </button>
+
+              <button
+                disabled={!selectedSavedSurvey}
+                onClick={handleOpenUnassignModal}
+                className="survey-button unassign-button"
+              >
+                Unassign
+              </button>
+
+              <button onClick={closeLoadModal} className="modal-close-btn">
+                Cancel
+              </button>
+            </div>
+      
+            {/* Modal for deleting survey */}
             {surveyToDelete && (
               <div className="modal-overlay">
                 <div className="modal-content">
-                  <h2 className="delete-header">Delete Survey</h2>
-                  <p className="mb-4">
-                    Are you sure you want to delete{" "}
-                    <strong>{surveyToDelete.title}</strong>?
-                  </p>
-                  <div className="delete-buttons">
-                    <button
-                      onClick={() => handleDeleteSurvey(surveyToDelete.id)}
-                      className="confirm-del-survey-button"
+                  <h2>Delete Survey</h2>
+                  <p>Are you sure you want to delete <strong>{surveyToDelete.title}</strong>?</p>
+                  <div className="modal-buttons">
+                    <button className="confirm-delete-button"
+                    onClick={() => {
+                      handleDeleteSurvey(surveyToDelete.id);
+                      setSelectedSavedSurvey("");
+                    }}
                     >
                       Delete
                     </button>
-
-                    <button
-                      onClick={() => setSurveyToDelete(null)}
-                      className="cancel-del-survey-button"
-                    >
-                      Cancel
-                    </button>
+                    <button onClick={() => setSurveyToDelete(null)}>Cancel</button>
                   </div>
                 </div>
               </div>
@@ -516,6 +657,75 @@ const ProfessorSurveyCreation = () => {
           </div>
         </div>
       )}
+
+      {/* Modal for to display the assigning functionality */}
+      {showAssignModal && (
+        <div className="assign-modal">
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>Assign Survey to Student</h3>
+      
+              <div className="assign-field">
+              <label>Select Student</label>
+              <Select
+                options={studentOptions}
+                maxMenuHeight={180}
+                onChange={(selectedOption) => setSelectedStudentId(selectedOption.value)}
+                placeholder="Select a student"
+              />
+            </div>
+      
+              <label>Deadline</label>
+              <input
+                type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+      
+              <div className="modal-buttons">
+                <button type="button" onClick={handleAssignSurvey}>Assign</button>
+                <button onClick={() => setShowAssignModal(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal for to display the unassigning functionality */}
+      {showUnassignModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Unassign Survey</h3>
+      
+            <div className="assign-field">
+              <label>Select student to unassign</label>
+              <Select
+                options={unassignOptions}
+                value={unassignOptions.find(o => o.value === selectedUnassignId)}
+                onChange={opt => setSelectedUnassignId(opt.value)}
+                placeholder="-- pick one --"
+                maxMenuHeight={180}
+              />
+            </div>
+      
+            <div className="modal-buttons">
+            <button
+              onClick={handleUnassign}
+              className="survey-button-unassign-confirm"
+            >
+              Yes, Unassign
+            </button>
+            
+              <button
+                onClick={() => setShowUnassignModal(false)}
+                className="survey-button-unassign-cancel"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}      
        
     </div>
   );

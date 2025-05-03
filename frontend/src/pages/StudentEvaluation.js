@@ -1,175 +1,392 @@
 import "./StudentEvaluation.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Select from 'react-select';
 
 const StudentSurvey = ({ studentName }) => {
+  const [instances, setInstances] = useState([]);
+  const [selectedInstance, setSelectedInstance] = useState("");
+  const [surveyData, setSurveyData] = useState(null);
   const [responses, setResponses] = useState({});
-  const [showModal, setShowModal] = useState(false);
   const [showCompletedModal, setShowCompletedModal] = useState(false);
+  const [drafts, setDrafts] = useState([]);   
+  const [selectedDraft, setSelectedDraft] = useState("");
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
 
-  const displayName = studentName || "the student";
+  // Used to get information for dropdown
+  const surveyOptions = instances.map(i => ({
+    value: String(i.instance_id),
+    label: `${i.form_title} (due ${new Date(i.deadline).toLocaleDateString()})`
+  }));
 
-  const handleChange = (question, value) => {
-    setResponses((prev) => ({ ...prev, [question]: value }));
-  };
+  // Used to get information for dropdown
+  const draftOptions = drafts.map(d => ({
+    value: String(d.response_id),
+    label: `${d.form_title} (saved ${new Date(d.saved_at).toLocaleString()}; due ${new Date(d.deadline).toLocaleDateString()})`,
+    instanceId: d.instance_id
+  }));  
+  
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Loads in the assigned survey's for the dropdown, as well as any saved drafts
+  useEffect(() => {
+    (async () => {
+      const [s1, s2] = await Promise.allSettled([
+        fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-surveys`, { credentials: "include" }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-drafts`,  { credentials: "include" }),
+      ]);
+  
+      if (s1.status === "fulfilled" && s1.value.ok) {
+        setInstances(await s1.value.json());
+      }
+  
+      if (s2.status === "fulfilled" && s2.value.ok) {
+        setDrafts(await s2.value.json());
+      }
+    })();
+  }, []);
 
-    // Check if all required questions have been answered
-    const requiredQuestions = [
-      "contribution",
-      "facilitation",
-      "completion",
-      "constructive",
-      "conflict",
-      "student-comment",
-    ];
-
-    const allAnswered = requiredQuestions.every((question) => {
-      return responses[question] !== undefined && responses[question] !== "";
-    });
-
-    if (!allAnswered) {
-      // Show the modal if any required question is unanswered
-      setShowModal(true);
-    } else {
-      // Show the "Survey Completed" modal if all questions are answered
-      setShowCompletedModal(true);
+  // Function for beginning a survey
+  const startSurvey = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/studentsurvey/load/${selectedInstance}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) throw new Error(await res.text());
+      setSurveyData(await res.json());
+    } catch (err) {
+      console.error("Could not load survey.", err);
+      alert("Could not load survey.");
     }
   };
 
-  const navigate = useNavigate();
+  const handleChange = (qId, val) =>
+    setResponses(r => ({ ...r, [qId]: val }));
 
-  const closeModal = () => {
-    setShowModal(false);
+  const handleSaveDraft = async () => {
+    if (!selectedInstance) return;
+  
+    try {
+      const res = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/studentsurvey/save-draft`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instanceId: selectedInstance,
+            answers:    responses,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
+  
+      alert("Your draft has been saved.");
+  
+      setSurveyData(null);
+  
+      // reloads both lists for dropdown
+      const [surveysRes, draftsRes] = await Promise.all([
+        fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-surveys`, { credentials: "include" }),
+        fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-drafts`,  { credentials: "include" }),
+      ]);
+
+      if (surveysRes.ok) setInstances(await surveysRes.json());
+      if (draftsRes.ok)  setDrafts(await draftsRes.json());
+  
+      setSelectedInstance("");
+      setResponses({});
+      setSelectedDraft("");
+    } 
+    catch (err) {
+      console.error("Save draft failed:", err);
+      alert("Could not save draft. Please try again.");
+    }
   };
 
-  const closeCompletedModal = () => {
-    setShowCompletedModal(false);
-    // Redirect to student dashboard after closing the completed modal
-    navigate("/student-dashboard");
+  // Used to reload dropdowns
+  const resetToPickers = async () => {
+    setSurveyData(null);
+    setSelectedInstance("");
+    setResponses({});
+    setSelectedDraft("");
+    const [surveysRes, draftsRes] = await Promise.all([
+      fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-surveys`, { credentials: "include" }),
+      fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-drafts`,  { credentials: "include" }),
+    ]);
+
+    if (surveysRes.ok) setInstances(await surveysRes.json());
+    if (draftsRes.ok)  setDrafts(await draftsRes.json());
   };
 
+  const handleDiscard = () => {
+    setShowDiscardModal(true);
+  };
+  
+  const confirmDiscard = () => {
+    setShowDiscardModal(false);
+    resetToPickers();
+  };
+
+  const cancelDiscard = () => setShowDiscardModal(false);
+
+  // Loads in the information for the survey draft, include the saved responses
+  const continueDraft = async () => {
+    if (!selectedDraft) return;
+  
+    const opt = draftOptions.find(o => o.value === selectedDraft);
+    if (!opt) return;
+  
+    const instanceId = opt.instanceId;
+    setSelectedInstance(instanceId);
+  
+    const formRes = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/studentsurvey/load/${instanceId}`,
+      { credentials: "include" }
+    );
+
+    if (!formRes.ok) {
+      alert("Could not load draft form");
+      return;
+    }
+    const data = await formRes.json();
+    setSurveyData(data);
+  
+
+    const answerRes = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/studentsurvey/draft-answers/${selectedDraft}`,
+      { credentials: "include" }
+    );
+
+    if (!answerRes.ok) {
+      console.error("Could not load saved answers");
+      return;
+    }
+    const answers = await answerRes.json();
+  
+    const parsed = {};
+    data.questions.forEach(q => {
+      const raw = answers[q.question_id];
+      if (q.question_type === "rating") {
+        parsed[q.question_id] =
+          raw != null
+            ? parseInt(raw, 10)
+            : undefined;
+      } else {
+        parsed[q.question_id] = raw ?? "";
+      }
+    });  
+
+    setResponses(parsed);
+  };
+  
+  
+  
+  const handleSubmit = (e) => {
+    e.preventDefault()
+  
+    // Check that every question has an answer before submitting
+    const unanswered = surveyData.questions.filter(q => {
+      const val = responses[q.question_id];
+      return val === undefined || val === null || val === "";
+    });
+  
+    if (unanswered.length > 0) {
+      alert("Please answer all questions before submitting.");
+      return;
+    }
+  
+    if (!selectedInstance) return;
+    setShowSubmitConfirm(true);
+  };
+
+  const confirmSubmit = async () => {
+    setShowSubmitConfirm(false);
+    try {
+      const res = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/studentsurvey/submit`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instanceId: selectedInstance,
+            answers: responses,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
+      setShowCompletedModal(true);
+    } catch (err) {
+      console.error("Submit failed:", err);
+      alert("Could not submit survey. Please try again.");
+    }
+  };
+
+
+  // If there isn't a survey that is chosen yet, display the two dropdown lists for surveys and drafts
+  if (!surveyData) {
+    return (
+      <div className="survey-form-container">
+        <h1>Assigned Surveys</h1>
+
+        {/* pick a new assigned survey to take */}
+        <div>
+          <label>Select a new survey:</label>
+          <Select
+            options={surveyOptions}
+            value={surveyOptions.find(o => o.value === selectedInstance)}
+            onChange={opt => setSelectedInstance(opt?.value || "")}
+            placeholder="— pick one —"
+            maxMenuHeight={180}
+            isSearchable/>
+            
+          <button
+            onClick={startSurvey}
+            disabled={!selectedInstance}
+            className="survey-button"
+          >
+            Start Survey
+          </button>
+        </div>
+
+        {/* If there is a saved draft, then show */}
+        {drafts.length > 0 && (
+          <div style={{ marginTop: "1.5em" }}>
+            <label>Continue a saved draft:</label>
+            <Select
+              options={draftOptions}
+              value={draftOptions.find(o => o.value === selectedDraft)}
+              onChange={opt => setSelectedDraft(opt?.value || "")}
+              placeholder="— pick draft —"
+              maxMenuHeight={180}
+              isSearchable />
+
+            <button
+              onClick={continueDraft}
+              disabled={!selectedDraft}
+              className="survey-button"
+            >
+              Continue Draft
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // If a survey was chosen from the list, display it
   return (
     <div className="survey-form-container">
-      <h1 className="survey-header">Course End Of Term Survey for {displayName}</h1>
-      <p className="survey-description">Students enrolled in the course are required to complete the survey for all team members.</p>
+      <h1>{surveyData.form_title}</h1>
+      <p>{surveyData.form_description}</p>
 
       <form onSubmit={handleSubmit}>
-        <div className="survey-question">
-          <h3>1. Please rate how {displayName} contributes to Team Meetings.</h3>
-          {["Does not contribute to Team Meetings.",
-            "Shares ideas but does not advance the work of the group.",
-            "Offers new suggestions to advance the work of the group.",
-            "Offers alternate solutions or courses of actions that build on the ideas of others.",
-            "Helps the team move forward by calculating the merits of alternative ideas or proposals."]
-            .map((option, index) => (
-              <label key={index} className="survey-label">
-                <input type="radio" name="contribution" value={index} onChange={() => handleChange("contribution", index)} className="survey-input-radio" />
-                {option} ({index})
+      {surveyData.questions.map(q => (
+        <div key={q.question_id} className="survey-question">
+          <h3>{q.question_text.replace("the student", studentName)}</h3>
+      
+          {q.question_type === "rating" ? (
+            q.options.map((opt, idx) => (
+              <label key={idx} className="survey-label">
+                <input
+                type="radio"
+                name={String(q.question_id)}
+                value={idx}
+                checked={responses[q.question_id] === idx}
+                onChange={() => handleChange(q.question_id, idx)}
+                />
+              
+                <span className="choice-text">{opt}</span>
               </label>
-          ))}
+            ))
+          ) : (
+            <textarea
+              name={String(q.question_id)}
+              value={responses[q.question_id] || ""}
+              onChange={e => handleChange(q.question_id, e.target.value)}
+              className="survey-textarea"
+            />
+          )}
         </div>
-
-        <div className="survey-question">
-          <h3>2. Please rate how {displayName} facilitates the Contributions of Team Members.</h3>
-          {["Does not facilitate the Contributions of Team Members.",
-            "Engages team members by taking turns and listening to others without interrupting.",
-            "Engages team members by restating the views of others and asking for clarification.",
-            "Engages team members by constructively building upon or synthesizing contributions.",
-            "Engages team members by both building upon contributions and inviting others to engage."]
-            .map((option, index) => (
-              <label key={index} className="survey-label">
-                <input type="radio" name="facilitation" value={index} onChange={() => handleChange("facilitation", index)} className="survey-input-radio" />
-                {option} ({index})
-              </label>
-          ))}
-        </div>
-
-        <div className="survey-question">
-          <h3>3. Please rate how {displayName} makes Individual Contributions Outside of Team Meetings.</h3>
-          {["Does not complete all assigned tasks by deadline.",
-            "Completes all assigned tasks by deadline.",
-            "Completes tasks by deadline; work advances the project.",
-            "Completes tasks by deadline; work is thorough and advances the project.",
-            "Completes tasks by deadline; work is thorough, comprehensive, and helps others."]
-            .map((option, index) => (
-              <label key={index} className="survey-label">
-                <input type="radio" name="completion" value={index} onChange={() => handleChange("completion", index)} className="survey-input-radio" />
-                {option} ({index})
-              </label>
-          ))}
-        </div>
-
-        <div className="survey-question">
-          <h3>4. Please rate how {displayName} fosters Constructive Team Climate.</h3>
-          {["Does foster Constructive Team Climate.",
-            "Treats team members respectfully by being polite and constructive in communication.",
-            "Uses positive vocal or written tone, facial expressions, and/or body language to convey a positive attitude about the team and its work.",
-            "Motivates teammates by expressing confidence about the importance of the task and the team's ability to accomplish it.",
-            "Provides assistance and/or encouragement to team members."]
-            .map((option, index) => (
-              <label key={index} className="survey-label">
-                <input type="radio" name="constructive" value={index} onChange={() => handleChange("constructive", index)} className="survey-input-radio" />
-                {option} ({index})
-              </label>
-          ))}
-        </div>
-
-        <div className="survey-question">
-          <h3>5. Please rate how {displayName} responds to Conflict.</h3>
-          {["Does not respond to Conflict.",
-            "Passively accepts alternate viewpoints/ideas/opinions.",
-            "Redirecting focus toward common ground, toward task at hand (away from conflict).",
-            "Identifies and acknowledges conflict and stays engaged with it.",
-            "Addresses destructive conflict directly and constructively, helping to manage/resolve it in a way that strengthens overall team cohesiveness and future effectiveness."]
-            .map((option, index) => (
-              <label key={index} className="survey-label">
-                <input type="radio" name="conflict" value={index} onChange={() => handleChange("conflict", index)} className="survey-input-radio" />
-                {option} ({index})
-              </label>
-          ))}
-        </div>
-
-        <div className="survey-question">
-          <h3>6. Please comment on {displayName}.</h3>
-          <p>Please offer support for any claims you make, positive or negative, about this team member. Unsubstantiated claims will carry less weight.</p>
-          <textarea
-            name="student-comment"
-            rows="5"
-            placeholder="Enter your comments here..."
-            onChange={(e) => handleChange("student-comment", e.target.value)}
-            className="survey-textarea"
-          ></textarea>
-        </div>
-
-        <div className="survey-button-group">
-          <button type="button" onClick={() => navigate("/student-dashboard")} className="survey-cancel-button">
-            Cancel
+      ))}
+    
+        <div className="button-row">
+          <button
+            type="button"
+            onClick={handleDiscard}
+            className="btn-discard"
+          >
+            Back
           </button>
-          <button type="submit" className="survey-button">
+
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={!Object.keys(responses).length}
+            className="btn-save-draft"
+          >
+            Save Draft
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="btn-submit"
+          >
             Submit
           </button>
         </div>
       </form>
 
-      {/* Modal for unanswered questions */}
-      {showModal && (
+      {/* Confirmation modal for Discard */}
+      {showDiscardModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Please answer all questions before submitting.</h3>
-            <button onClick={closeModal} className="modal-close-button">Close</button>
+            <h3>Discard changes?</h3>
+            <p>Are you sure you want to discard current changes made to the survey? This cannot be undone.</p>
+            <button onClick={confirmDiscard} className="survey-button-discard-button">
+              Yes, Discard
+            </button>
+            <button onClick={cancelDiscard} className="survey-button">
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
-      {/* Modal for completed survey */}
+      {/* Confirmation modal for Submission */}
+      {showSubmitConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Confirm submission?</h3>
+            <p>Are you sure you want to submit your responses? You will not be able to change them after submission.</p>
+            <button
+              onClick={confirmSubmit}
+              className="survey-button-submit-button"
+            >
+              Yes, Submit
+            </button>
+            <button
+              onClick={() => setShowSubmitConfirm(false)}
+              className="survey-button"
+           >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Completed modal for Submission */}
       {showCompletedModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Survey Completed!</h3>
-            <button onClick={closeCompletedModal} className="modal-close-button">Close</button>
+            <button onClick={() => navigate("/student-dashboard")}>
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -177,4 +394,4 @@ const StudentSurvey = ({ studentName }) => {
   );
 };
 
-export default StudentSurvey
+export default StudentSurvey;

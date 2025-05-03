@@ -208,11 +208,11 @@ body {
   }
   
   .save-survey-btn {
-    background-color: #2ecc71;
+    background-color: #2ab965;
   }
   
   .save-survey-btn:hover {
-    background-color: #27ae60;
+    background-color: #2ab965;
   }
   
   .discard-changes-btn {
@@ -252,6 +252,12 @@ body {
     border-radius: 8px;
     text-align: center;
   }
+
+  .assign-warning {
+    color: #c0392b;
+    font-size: 0.9em;
+    margin-top: 0.5em;
+  }  
   
   .modal-btn {
     display: block;
@@ -275,30 +281,168 @@ body {
     cursor: pointer;
   }
 
-
-  /* Managae Button Modal */
-  .manaage-survey-buttons {
-    margin: 10px;
-  }
-
-  .X-del-survey-button {
-    background-color: #c0392b;
-    padding: 4px 16px;
+  .confirm-delete-button {
+    background-color: #e02b17;
+    color: white;
+    padding: 12px 20px;
     font-size: 16px;
     border: none;
+    border-radius: 4px;
     cursor: pointer;
-    
   }
   
-  .X-del-survey-button:hover {
-    color: #c0392b;
+  .confirm-delete-button:hover {
+    background-color: #c0392b;
+  }
+  
+
+  /* CSS for Manage‑Surveys Modal Overrides */
+  .modal-content .creation-field select {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    margin-bottom: 16px;
   }
 
-  .confirm-del-survey-button {
+  .modal-content .modal-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .modal-content .modal-buttons .survey-button {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 0;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .modal-content .modal-buttons .survey-button:nth-child(1) {
+    background-color: #3498db;
+    color: white;
+  }
+  .modal-content .modal-buttons .survey-button:nth-child(1):hover {
+    background-color: #2980b9;
+  }
+
+  .modal-content .modal-buttons .survey-button:nth-child(2) {
+    background-color: #2ab965;
+    color: white;
+  }
+  .modal-content .modal-buttons .survey-button:nth-child(2):hover {
+    background-color: #2ab965;
+  }
+
+  .modal-content .modal-buttons .delete-button {
+    background-color: #e74c3c;
+    color: white;
+  }
+  .modal-content .modal-buttons .delete-button:hover {
     background-color: #c0392b;
   }
 
-  /* Overwrite Modal */
+  .modal-content .modal-close-btn {
+    background: none;
+    color: #555;
+    margin-top: 8px;
+  }
+  .modal-content .modal-close-btn:hover {
+    color: #000;
+  }
+
   .confirm-overwrite {
     background-color: #e67e22;
+  }
+
+  .assign-modal .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .assign-modal .modal-content {
+    background: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    width: 360px;
+    max-width: 95%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    text-align: center;
+  }
+
+  .assign-modal .modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 20px;
+  }
+
+  .assign-modal select,
+  .assign-modal input[type="date"] {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  .assign-modal label {
+    display: block;
+    margin: 10px 0 4px;
+    font-weight: bold;
+    text-align: left;
+  }
+
+  .assign-modal .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .assign-modal .modal-buttons button {
+    padding: 10px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .assign-modal .modal-buttons button:first-child {
+    background-color: #2ab965;
+    color: white;
+  }
+
+  .assign-modal .modal-buttons button:first-child:hover {
+    background-color: #2ab965;
+  }
+
+  .unassign-button {
+    background-color: #e74c3c;
+    color: white;
+  }
+  .unassign-button:hover {
+    background-color: #e74c3c;
+  }
+
+  .survey-button-unassign-confirm {
+    background-color: #e74c3c;
+    color: white;
+    
+  }
+  .unassign-confirm:hover {
+    background-color: #c0392b;
   }
