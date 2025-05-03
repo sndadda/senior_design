@@ -26,8 +26,6 @@ router.post("/save", authenticateToken, async (req, res) => {
 
     if (existingSurveyResult.rowCount > 0) {
       if (!forceOverwrite) {
-        // returns 409 with given scenerio
-        // this shouldn't happen, but just in case
         return res.status(409).json({ message: `A survey with the title "${title}" already exists.` });
       }
 
@@ -214,5 +212,143 @@ router.delete("/delete/:id", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Error deleting survey", error: err.message });
   }
 });
+
+// Lists the students in the system (Should be change for course creation)
+// Used for displaying students to assign to
+router.get("/students/list", authenticateToken, async (req, res) => {
+  const sectionId = req.query.section_id;
+
+  try {
+    let result;
+
+    if (sectionId) {
+      result = await db.query(`
+        SELECT u.user_id, u.first_name, u.last_name, u.email
+        FROM Users
+        INNER JOIN Enrollments e ON u.user_id = e.stud_id
+        WHERE e.section_id = $1 AND u.role = 'student'
+        ORDER BY u.last_name, u.first_name
+      `, [sectionId]);
+    } else {
+
+      // Returns all user's with student role if there isn't a given sectionID
+      // Change when sectionID can be included
+      result = await db.query(`
+        SELECT user_id, first_name, last_name, email
+        FROM Users
+        WHERE role = 'student'
+        ORDER BY last_name, first_name
+      `);
+    }
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Failed to fetch students:", err.message || err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Used to assign a survey to a student
+router.post("/assign", authenticateToken, async (req, res) => {
+  const { surveyId, studentId, sectionId, deadline } = req.body;
+
+  if (!surveyId || !deadline || (!sectionId && !studentId)) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    let result;
+
+    if (sectionId) {
+      // Assign to a section if sectionID is given
+      result = await db.query(`
+        INSERT INTO SurveyInstances (survey_form_id, section_id, deadline)
+        VALUES ($1, $2, $3)
+        RETURNING instance_id
+      `, [surveyId, sectionId, deadline]);
+
+    } else {
+      // Assign to a specific student
+      result = await db.query(`
+        INSERT INTO SurveyInstances (survey_form_id, deadline)
+        VALUES ($1, $2)
+        RETURNING instance_id
+      `, [surveyId, deadline]);
+
+      await db.query(`
+        INSERT INTO SurveyInstanceAssignments (instance_id, student_id)
+        VALUES ($1, $2)
+      `, [result.rows[0].instance_id, studentId]);
+    }
+
+    res.status(201).json({ message: "Survey assigned", instance_id: result.rows[0].instance_id });
+  } catch (err) {
+    console.error("Failed to assign survey:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get the students that were assigned a specific survey with surveyFormID
+// Used for Unassigning surveys
+router.get("/assigned/:surveyFormId", authenticateToken, async (req, res) => {
+    const formId = parseInt(req.params.surveyFormId,10);
+
+    const result = await db.query(
+      `SELECT u.user_id, u.first_name, u.last_name, u.email
+         FROM SurveyInstanceAssignments a
+         JOIN SurveyInstances i ON a.instance_id = i.instance_id
+         JOIN Users u ON a.student_id = u.user_id
+        WHERE i.survey_form_id = $1
+          AND a.completed = FALSE`,
+      [formId]
+    );
+    res.json(result.rows);
+  }
+);
+
+// Used to Unassign a survey from a student
+router.post("/unassign", authenticateToken, async (req, res) => {
+    const { surveyId, studentId } = req.body;
+    if (!surveyId || !studentId) {
+      return res.status(400).json({ message: "Missing surveyId or studentId" });
+    }
+
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Delete any saved drafts for assigned survey
+      await client.query(
+        `DELETE FROM SurveyResponses r
+           USING SurveyInstances i
+          WHERE r.instance_id    = i.instance_id
+            AND i.survey_form_id = $1
+            AND r.submitted_by   = $2
+            AND r.is_submitted   = FALSE`,
+        [surveyId, studentId]
+      );
+
+      // Delete the assignment 
+      await client.query(
+        `DELETE FROM SurveyInstanceAssignments a
+           USING SurveyInstances i
+          WHERE a.instance_id    = i.instance_id
+            AND i.survey_form_id = $1
+            AND a.student_id     = $2
+            AND a.completed      = FALSE`,
+        [surveyId, studentId]
+      );
+
+      await client.query("COMMIT");
+      res.json({ message: "Unassigned and draft cleared" });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error("unassign failed:", err);
+      res.status(500).json({ message: "Internal server error" });
+    } finally {
+      client.release();
+    }
+  }
+);
 
 module.exports = router;
