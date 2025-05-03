@@ -92,6 +92,14 @@ CREATE TABLE IF NOT EXISTS SurveyInstances (
     assigned_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS SurveyInstanceAssignments (
+  assignment_id SERIAL PRIMARY KEY,
+  instance_id INT REFERENCES SurveyInstances(instance_id) ON DELETE CASCADE,
+  student_id INT REFERENCES Users(user_id) ON DELETE CASCADE,
+  assigned_at TIMESTAMP DEFAULT NOW(),
+  completed BOOLEAN DEFAULT FALSE
+);
+
 CREATE TABLE IF NOT EXISTS SurveyQuestions (
     question_id SERIAL PRIMARY KEY,
     survey_form_id INT REFERENCES SurveyForms(survey_form_id) ON DELETE CASCADE,
@@ -112,8 +120,16 @@ CREATE TABLE IF NOT EXISTS SurveyResponses (
     section_id INT REFERENCES Section(section_id) ON DELETE CASCADE,
     submitted_by INT REFERENCES Users(user_id) ON DELETE CASCADE,
     evaluated_user INT REFERENCES Users(user_id) ON DELETE CASCADE,
+    instance_id INT REFERENCES SurveyInstances(instance_id) ON DELETE CASCADE,
+    saved_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    is_submitted   BOOLEAN   NOT NULL DEFAULT FALSE,
     submitted_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_surveyresponses_draft
+  ON SurveyResponses(survey_form_id, section_id, submitted_by)
+ WHERE is_submitted = FALSE;
+
 
 CREATE TABLE IF NOT EXISTS SurveyAnswers (
     answer_id SERIAL PRIMARY KEY,
