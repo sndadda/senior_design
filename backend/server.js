@@ -7,6 +7,7 @@ require("dotenv").config();
 const professorRoutes = require("./routes/professorRoutes");
 const authRoutes = require("./routes/authRoutes");
 const professorSurveyRoutes = require("./routes/professorSurveyRoutes");
+const studentSurveyRoutes = require("./routes/studentSurveyRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -24,6 +25,7 @@ app.use(helmet());
 app.use("/api/auth", authRoutes);
 app.use("/api/professor", professorRoutes);
 app.use("/api/professorsurvey", professorSurveyRoutes);
+app.use("/api/studentsurvey", studentSurveyRoutes);
 
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running at http://ip:${PORT}`));
