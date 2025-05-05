@@ -113,5 +113,44 @@ router.post("/add-student", authenticateToken, async (req, res) => {
 });
 
 
+router.get("/course-details/:section_id", authenticateToken, async (req, res) => {
+  const sectionId = req.params.section_id;
+
+  try {
+    // Fetch section and course info
+    const sectionInfo = await pool.query(`
+      SELECT c.course_name, s.term, s.year, s.section_num
+      FROM Section s
+      JOIN Course c ON s.course_num = c.course_num
+      WHERE s.section_id = $1
+    `, [sectionId]);
+
+    // Fetch enrolled students
+    const enrolledStudents = await pool.query(`
+      SELECT u.user_id, u.first_name, u.last_name, u.username
+      FROM Enrollments e
+      JOIN Users u ON e.stud_id = u.user_id
+      WHERE e.section_id = $1
+    `, [sectionId]);
+
+    // Fetch pending students
+    const pendingStudents = await pool.query(`
+      SELECT username, first_name, last_name
+      FROM PendingStudents
+      WHERE section_id = $1
+    `, [sectionId]);
+
+    res.json({
+      section: sectionInfo.rows[0],
+      enrolled: enrolledStudents.rows,
+      pending: pendingStudents.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching course details." });
+  }
+});
+
+
 
 module.exports = router;

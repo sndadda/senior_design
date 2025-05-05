@@ -253,7 +253,7 @@ router.post("/verify-code", [
         // Start verifying professor email via scraping
         //const isVerified = await verifyProfessorEmail(email, alias_email);
         //TEMPORARY - override and accept following emails as professors.
-        const autoVerifiedEmails = ["snd63@drexel.edu", "np842@drexel.edu", "am4529@drexel.edu", "mar558@drexel.edu", "ll927@drexel.edu", "ll927@drexel.edu"];
+        const autoVerifiedEmails = ["snd63@drexel.edu", "np842@drexel.edu", "am4529@drexel.edu", "mar558@drexel.edu", "ll927@drexel.edu", "ll927@drexel.edu", "ys678@drexel.edu"];
         let isVerified = false;
 
         if (autoVerifiedEmails.includes(email.toLowerCase())) {

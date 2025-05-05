@@ -8,7 +8,7 @@ const professorRoutes = require("./routes/professorRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 8001;
+const PORT = process.env.PORT || 8000;
 
 app.use(cors({
     origin: "http://10.246.250.47:3000",
