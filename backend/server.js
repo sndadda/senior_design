@@ -4,9 +4,9 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
-const uploadRoutes = require("./routes/uploadRoutes");
 const professorRoutes = require("./routes/professorRoutes");
 const authRoutes = require("./routes/authRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -23,6 +23,7 @@ app.use(helmet());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/professor", professorRoutes);
+app.use("/api/upload", uploadRoutes);
 
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

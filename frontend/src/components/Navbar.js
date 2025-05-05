@@ -21,6 +21,7 @@ const Navbar = ({ user, onLogout }) => {
         ) : (
           <>
             <button onClick={() => navigate("/professor_dashboard")}>Home</button>
+            <button onClick={() => navigate("/CsvUploader")}>CSV Import</button>
           </>
         )}
       </div>

@@ -1,3 +1,4 @@
+
 const { Pool, Client } = require("pg");
 const fs = require("fs");
 const path = require("path");
@@ -30,6 +31,12 @@ const createDatabaseIfNotExists = async () => {
 
 createDatabaseIfNotExists();
 
+console.log("Database User:", process.env.DB_USER);
+console.log("Database Host:", process.env.DB_HOST);
+console.log("Database Name:", process.env.DB_NAME);
+console.log("Database Password:", process.env.DB_PASSWORD);
+console.log("Database Port:", process.env.DB_PORT);
+
 // main connection pool for queries
 const pool = new Pool({
     user: process.env.DB_USER,
@@ -41,7 +48,7 @@ const pool = new Pool({
 
 const initDatabase = async () => {
     try {
-        const schemaPath = path.join(__dirname, "../database/schema.sql");
+        const schemaPath = path.join(__dirname, "../database/nas_schema.sql");
         const schemaSql = fs.readFileSync(schemaPath, "utf8");
         await pool.query(schemaSql);
         console.log("Database schema applied successfully");
