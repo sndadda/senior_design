@@ -152,5 +152,43 @@ router.get("/course-details/:section_id", authenticateToken, async (req, res) =>
 });
 
 
+router.post("/assign-teams", authenticateToken, async (req, res) => {
+  const { section_id, teams } = req.body;
+
+  if (!section_id || !teams || !Array.isArray(teams)) {
+    return res.status(400).json({ message: "Missing or invalid fields." });
+  }
+
+  try {
+    for (const team of teams) {
+      const { team_name, student_ids } = team;
+
+      if (!team_name || !Array.isArray(student_ids)) continue;
+
+      // Create team
+      const result = await pool.query(
+        "INSERT INTO Team (team_name) VALUES ($1) RETURNING team_id",
+        [team_name]
+      );
+      const team_id = result.rows[0].team_id;
+
+      // Link students
+      for (const stud_id of student_ids) {
+        await pool.query(
+          "INSERT INTO TeamMembers (team_id, stud_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+          [team_id, stud_id]
+        );
+      }
+    }
+
+    res.json({ message: "Teams assigned successfully." });
+  } catch (err) {
+    console.error("Error assigning teams:", err);
+    res.status(500).json({ message: "Server error while assigning teams." });
+  }
+});
+
+
+
 
 module.exports = router;
