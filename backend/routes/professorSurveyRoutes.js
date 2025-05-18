@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
-const { authenticateToken } = require("./authRoutes");
+const authenticateToken = require("../middleware/authenticateToken");
 
 // Route for saving survey
 router.post("/save", authenticateToken, async (req, res) => {
@@ -250,41 +250,43 @@ router.get("/students/list", authenticateToken, async (req, res) => {
 
 // Used to assign a survey to a student
 router.post("/assign", authenticateToken, async (req, res) => {
-  const { surveyId, studentId, sectionId, deadline } = req.body;
+  const { surveyId, studentIds, sectionId, deadline } = req.body;
 
-  if (!surveyId || !deadline || (!sectionId && !studentId)) {
+  if (!surveyId || !deadline || (!sectionId && (!Array.isArray(studentIds) || studentIds.length === 0))) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
-    let result;
-
+    // for sections
     if (sectionId) {
-      // Assign to a section if sectionID is given
-      result = await db.query(`
+      const result = await db.query(`
         INSERT INTO SurveyInstances (survey_form_id, section_id, deadline)
         VALUES ($1, $2, $3)
         RETURNING instance_id
       `, [surveyId, sectionId, deadline]);
 
+      return res.status(201).json({ message: "Survey assigned to section", instance_id: result.rows[0].instance_id });
     } else {
-      // Assign to a specific student
-      result = await db.query(`
-        INSERT INTO SurveyInstances (survey_form_id, deadline)
-        VALUES ($1, $2)
-        RETURNING instance_id
-      `, [surveyId, deadline]);
+      for (const studentId of studentIds) {
+        const instanceResult = await db.query(`
+          INSERT INTO SurveyInstances (survey_form_id, deadline)
+          VALUES ($1, $2)
+          RETURNING instance_id
+        `, [surveyId, deadline]);
 
-      await db.query(`
-        INSERT INTO SurveyInstanceAssignments (instance_id, student_id)
-        VALUES ($1, $2)
-      `, [result.rows[0].instance_id, studentId]);
+        const instanceId = instanceResult.rows[0].instance_id;
+
+        await db.query(`
+          INSERT INTO SurveyInstanceAssignments (instance_id, student_id)
+          VALUES ($1, $2)
+        `, [instanceId, studentId]);
+      }
+
+      return res.status(201).json({ message: "Survey assigned to students" });
     }
-
-    res.status(201).json({ message: "Survey assigned", instance_id: result.rows[0].instance_id });
   } catch (err) {
     console.error("Failed to assign survey:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -308,16 +310,17 @@ router.get("/assigned/:surveyFormId", authenticateToken, async (req, res) => {
 
 // Used to Unassign a survey from a student
 router.post("/unassign", authenticateToken, async (req, res) => {
-    const { surveyId, studentId } = req.body;
-    if (!surveyId || !studentId) {
-      return res.status(400).json({ message: "Missing surveyId or studentId" });
-    }
+  const { surveyId, studentIds } = req.body;
 
-    const client = await db.connect();
-    try {
-      await client.query("BEGIN");
+  if (!surveyId || !Array.isArray(studentIds) || studentIds.length === 0) {
+    return res.status(400).json({ message: "Missing surveyId or studentIds" });
+  }
 
-      // Delete any saved drafts for assigned survey
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    for (const studentId of studentIds) {
       await client.query(
         `DELETE FROM SurveyResponses r
            USING SurveyInstances i
@@ -328,7 +331,6 @@ router.post("/unassign", authenticateToken, async (req, res) => {
         [surveyId, studentId]
       );
 
-      // Delete the assignment 
       await client.query(
         `DELETE FROM SurveyInstanceAssignments a
            USING SurveyInstances i
@@ -338,17 +340,17 @@ router.post("/unassign", authenticateToken, async (req, res) => {
             AND a.completed      = FALSE`,
         [surveyId, studentId]
       );
-
-      await client.query("COMMIT");
-      res.json({ message: "Unassigned and draft cleared" });
-    } catch (err) {
-      await client.query("ROLLBACK");
-      console.error("unassign failed:", err);
-      res.status(500).json({ message: "Internal server error" });
-    } finally {
-      client.release();
     }
+
+    await client.query("COMMIT");
+    res.json({ message: "Unassigned selected students" });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Unassign failed:", err);
+    res.status(500).json({ message: "Internal server error" });
+  } finally {
+    client.release();
   }
-);
+});
 
 module.exports = router;

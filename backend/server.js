@@ -8,9 +8,10 @@ const professorRoutes = require("./routes/professorRoutes");
 const authRoutes = require("./routes/authRoutes");
 const professorSurveyRoutes = require("./routes/professorSurveyRoutes");
 const studentSurveyRoutes = require("./routes/studentSurveyRoutes");
+const studentGradeRoutes = require("./routes/studentGradeRoutes")
 
 const app = express();
-const PORT = process.env.PORT || 8001;
+const PORT = process.env.PORT || 8000;
 
 app.use(cors({
     origin: "http://10.246.250.47:3000",
@@ -26,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/professor", professorRoutes);
 app.use("/api/professorsurvey", professorSurveyRoutes);
 app.use("/api/studentsurvey", studentSurveyRoutes);
+app.use("/api/studentgradesroutes", studentGradeRoutes);
 
 
 app.listen(PORT, () => console.log(`Server running at http://ip:${PORT}`));
