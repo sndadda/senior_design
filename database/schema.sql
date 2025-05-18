@@ -96,7 +96,6 @@ CREATE TABLE IF NOT EXISTS SurveyInstanceAssignments (
   assignment_id SERIAL PRIMARY KEY,
   instance_id INT REFERENCES SurveyInstances(instance_id) ON DELETE CASCADE,
   student_id INT REFERENCES Users(user_id) ON DELETE CASCADE,
-  assigned_at TIMESTAMP DEFAULT NOW(),
   completed BOOLEAN DEFAULT FALSE
 );
 
