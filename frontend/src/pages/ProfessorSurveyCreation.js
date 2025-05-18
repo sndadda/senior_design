@@ -22,13 +22,13 @@ const ProfessorSurveyCreation = () => {
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [students, setStudents] = useState([]);
-  const [selectedStudentId, setSelectedStudentId] = useState("");
   const [surveyToAssign, setSurveyToAssign] = useState(null);
   const [selectedSavedSurvey, setSelectedSavedSurvey] = useState("");
   const [deadline, setDeadline] = useState("");
   const [showUnassignModal, setShowUnassignModal] = useState(false);
   const [assignedStudents, setAssignedStudents] = useState([]);
-  const [selectedUnassignId, setSelectedUnassignId] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [selectedUnassignIds, setSelectedUnassignIds] = useState([]);
 
   const navigate = useNavigate();
 
@@ -282,7 +282,6 @@ const ProfessorSurveyCreation = () => {
     if (res.ok) {
       const list = await res.json();
       setStudents(list);
-      setSelectedStudentId("");
       setShowAssignModal(true);
     } else {
       console.error("Failed to fetch students from DB");
@@ -291,8 +290,16 @@ const ProfessorSurveyCreation = () => {
   
   // For dealing with assigning
   const handleAssignSurvey = async () => {
-    if (!selectedStudentId || !deadline) {
-      alert("Please select a student and deadline.");
+    if (!selectedStudentIds.length || !deadline) {
+      alert("Please select at least one student and a deadline.");
+      return;
+    }
+
+    const now = new Date();
+    const selectedDeadline = new Date(deadline);
+
+    if (selectedDeadline <= now) {
+      alert("Please select a future date and time for the deadline.");
       return;
     }
 
@@ -303,22 +310,22 @@ const ProfessorSurveyCreation = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           surveyId: surveyToAssign,
-          studentId: selectedStudentId,
+          studentIds: selectedStudentIds,
           deadline: deadline,
         }),
       });
 
       if (!res.ok) {
-        console.error("Failed to assign survey in DB");
+        console.error("Failed to assign survey");
+        alert("Assignment failed for one or more students.");
+        return;
       }
 
       alert("Survey assigned successfully!");
       setShowAssignModal(false);
-      setSelectedStudentId("");
+      setSelectedStudentIds([]);
       setDeadline("");
-
-    } 
-    catch (err) {
+    } catch (err) {
       console.error(err);
       alert("An error occurred while assigning the survey.");
     }
@@ -332,7 +339,6 @@ const ProfessorSurveyCreation = () => {
     if (res.ok) {
       const list = await res.json();
       setAssignedStudents(list);
-      setSelectedUnassignId("");
       setShowUnassignModal(true);
     } else {
       alert("Could not load assigned students");
@@ -341,27 +347,35 @@ const ProfessorSurveyCreation = () => {
 
   // For dealing with unassigning
   const handleUnassign = async () => {
-    if (!selectedUnassignId) {
-      alert("Please select a student to unassign");
+    if (!selectedUnassignIds.length) {
+      alert("Please select at least one student to unassign");
       return;
     }
-    const res = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/professorsurvey/unassign`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          surveyId: selectedSavedSurvey,
-          studentId: selectedUnassignId
-        }),
+
+    try {
+      const res = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/professorsurvey/unassign`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            surveyId: selectedSavedSurvey,
+            studentIds: selectedUnassignIds,
+          }),
+        }
+      );
+
+      if (res.ok) {
+        alert("Unassigned successfully");
+        setShowUnassignModal(false);
+        setSelectedUnassignIds([]);
+      } else {
+        alert("Failed to unassign");
       }
-    );
-    if (res.ok) {
-      alert("Unassigned successfully");
-      setShowUnassignModal(false);
-    } else {
-      alert("Failed to unassign");
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while unassigning.");
     }
   };
 
@@ -438,7 +452,7 @@ const ProfessorSurveyCreation = () => {
                       onChange={(e) =>
                         updateQuestion(q.id, "choices", e.target.value, cIdx)
                       }
-                      placeholder={`Choice ${cIdx + 1}`}
+                      placeholder={`Choice ${cIdx + 1} (Rating: ${cIdx + 1})`}
                     />
 
                     <button
@@ -666,19 +680,21 @@ const ProfessorSurveyCreation = () => {
               <h3>Assign Survey to Student</h3>
       
               <div className="assign-field">
-              <label>Select Student</label>
+              <label>Select Students</label>
               <Select
+                isMulti
                 options={studentOptions}
                 maxMenuHeight={180}
-                onChange={(selectedOption) => setSelectedStudentId(selectedOption.value)}
-                placeholder="Select a student"
+                onChange={(selectedOptions) => setSelectedStudentIds(selectedOptions.map(opt => opt.value))}
+                placeholder="Select Students"
               />
             </div>
       
               <label>Deadline</label>
               <input
-                type="date"
+                type="datetime-local"
                 value={deadline}
+                min={new Date().toISOString().slice(0, 16)}
                 onChange={(e) => setDeadline(e.target.value)}
               />
       
@@ -698,12 +714,13 @@ const ProfessorSurveyCreation = () => {
             <h3>Unassign Survey</h3>
       
             <div className="assign-field">
-              <label>Select student to unassign</label>
+              <label>Select student's to unassign</label>
               <Select
+                isMulti
                 options={unassignOptions}
-                value={unassignOptions.find(o => o.value === selectedUnassignId)}
-                onChange={opt => setSelectedUnassignId(opt.value)}
-                placeholder="-- pick one --"
+                value={unassignOptions.filter(o => selectedUnassignIds.includes(o.value))}
+                onChange={opts => setSelectedUnassignIds(opts.map(o => o.value))}
+                placeholder="Select students to unassign"
                 maxMenuHeight={180}
               />
             </div>

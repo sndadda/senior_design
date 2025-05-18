@@ -5,26 +5,29 @@ import Select from 'react-select';
 
 const StudentSurvey = ({ studentName }) => {
   const [instances, setInstances] = useState([]);
-  const [selectedInstance, setSelectedInstance] = useState("");
+  const [selectedInstance, setSelectedInstance] = useState(null);
   const [surveyData, setSurveyData] = useState(null);
   const [responses, setResponses] = useState({});
   const [showCompletedModal, setShowCompletedModal] = useState(false);
   const [drafts, setDrafts] = useState([]);   
-  const [selectedDraft, setSelectedDraft] = useState("");
+  const [selectedDraft, setSelectedDraft] = useState(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [showEvaluatorModal, setShowEvaluatorModal] = useState(false);
+  const [isSelfEvaluation, setIsSelfEvaluation] = useState(true);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [allStudents, setAllStudents] = useState([]);
 
   // Used to get information for dropdown
   const surveyOptions = instances.map(i => ({
     value: String(i.instance_id),
-    label: `${i.form_title} (due ${new Date(i.deadline).toLocaleDateString()})`
+    label: `${i.form_title} (Prof. ${i.professor_name}); (due: ${new Date(i.deadline).toLocaleString("en-US", { timeZone: "UTC" })})`
   }));
 
   // Used to get information for dropdown
   const draftOptions = drafts.map(d => ({
     value: String(d.response_id),
-    label: `${d.form_title} (saved ${new Date(d.saved_at).toLocaleString()}; due ${new Date(d.deadline).toLocaleDateString()})`,
-    instanceId: d.instance_id
+  label: `${d.form_title} (Prof. ${d.professor_name}); (saved: ${new Date(d.saved_at).toLocaleString()}; due: ${new Date(d.deadline).toLocaleString("en-US", { timeZone: "UTC" })})`, instanceId: d.instance_id
   }));  
   
   const navigate = useNavigate();
@@ -46,6 +49,22 @@ const StudentSurvey = ({ studentName }) => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/evaluate-choice`, {
+          credentials: "include"
+        });
+        if (res.ok) {
+          setAllStudents(await res.json());
+        }
+      } catch (err) {
+        console.error("Could not fetch students:", err);
+      }
+    })();
+  }, []);
+
 
   // Function for beginning a survey
   const startSurvey = async () => {
@@ -78,6 +97,7 @@ const StudentSurvey = ({ studentName }) => {
           body: JSON.stringify({
             instanceId: selectedInstance,
             answers:    responses,
+            evaluatedUserId: isSelfEvaluation ? null : selectedStudentId,
           }),
         }
       );
@@ -96,9 +116,9 @@ const StudentSurvey = ({ studentName }) => {
       if (surveysRes.ok) setInstances(await surveysRes.json());
       if (draftsRes.ok)  setDrafts(await draftsRes.json());
   
-      setSelectedInstance("");
+      setSelectedInstance(null);
       setResponses({});
-      setSelectedDraft("");
+      setSelectedDraft(null);
     } 
     catch (err) {
       console.error("Save draft failed:", err);
@@ -109,9 +129,9 @@ const StudentSurvey = ({ studentName }) => {
   // Used to reload dropdowns
   const resetToPickers = async () => {
     setSurveyData(null);
-    setSelectedInstance("");
+    setSelectedInstance(null);
     setResponses({});
-    setSelectedDraft("");
+    setSelectedDraft(null);
     const [surveysRes, draftsRes] = await Promise.all([
       fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-surveys`, { credentials: "include" }),
       fetch(`${process.env.REACT_APP_API_URL}/api/studentsurvey/my-drafts`,  { credentials: "include" }),
@@ -214,6 +234,7 @@ const StudentSurvey = ({ studentName }) => {
           body: JSON.stringify({
             instanceId: selectedInstance,
             answers: responses,
+            evaluatedUserId: isSelfEvaluation ? null : selectedStudentId
           }),
         }
       );
@@ -224,6 +245,7 @@ const StudentSurvey = ({ studentName }) => {
       alert("Could not submit survey. Please try again.");
     }
   };
+
 
 
   // If there isn't a survey that is chosen yet, display the two dropdown lists for surveys and drafts
@@ -237,14 +259,18 @@ const StudentSurvey = ({ studentName }) => {
           <label>Select a new survey:</label>
           <Select
             options={surveyOptions}
-            value={surveyOptions.find(o => o.value === selectedInstance)}
-            onChange={opt => setSelectedInstance(opt?.value || "")}
+            value={
+              selectedInstance == null
+                ? null
+                : surveyOptions.find(o => o.value === selectedInstance)
+            }
+            onChange={opt => setSelectedInstance(opt ? opt.value : null)}
             placeholder="— pick one —"
             maxMenuHeight={180}
             isSearchable/>
             
           <button
-            onClick={startSurvey}
+            onClick={() => setShowEvaluatorModal(true)}
             disabled={!selectedInstance}
             className="survey-button"
           >
@@ -258,8 +284,12 @@ const StudentSurvey = ({ studentName }) => {
             <label>Continue a saved draft:</label>
             <Select
               options={draftOptions}
-              value={draftOptions.find(o => o.value === selectedDraft)}
-              onChange={opt => setSelectedDraft(opt?.value || "")}
+              value={
+                selectedDraft == null
+                  ? null
+                  : draftOptions.find(o => o.value === selectedDraft)
+              }
+              onChange={opt => setSelectedDraft(opt ? opt.value : null)}
               placeholder="— pick draft —"
               maxMenuHeight={180}
               isSearchable />
@@ -271,6 +301,67 @@ const StudentSurvey = ({ studentName }) => {
             >
               Continue Draft
             </button>
+          </div>
+        )}
+
+        {showEvaluatorModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>Who are you evaluating?</h3>
+              <div style={{ marginBottom: "1em" }}>
+                <button
+                  className="survey-button"
+                  onClick={() => {
+                    setIsSelfEvaluation(true);
+                    setShowEvaluatorModal(false);
+                    startSurvey();
+                  }}
+                >
+                  Myself
+                </button>
+                <button
+                  className="survey-button"
+                  onClick={() => setIsSelfEvaluation(false)}
+                >
+                  Another Student
+                </button>
+              </div>
+
+              {!isSelfEvaluation && (
+                <>
+                  <label>Select a student to evaluate:</label>
+                  <Select
+                    options={allStudents.filter(s => s.label !== studentName)}
+                    value={allStudents.find(s => s.value === selectedStudentId)}
+                    onChange={opt => setSelectedStudentId(opt?.value || null)}
+                    placeholder="— choose student —"
+                    isSearchable
+                  />
+                  <button
+                    className="survey-button"
+                    disabled={!selectedStudentId}
+                    onClick={() => {
+                      setShowEvaluatorModal(false);
+                      startSurvey();
+                    }}
+                    style={{ marginTop: "1em" }}
+                  >
+                    Continue
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => {
+                  setShowEvaluatorModal(false);
+                  setIsSelfEvaluation(true); // reset
+                  setSelectedStudentId(null); // reset
+                }}
+                className="survey-button"
+                style={{ marginTop: "1em" }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -313,7 +404,7 @@ const StudentSurvey = ({ studentName }) => {
         </div>
       ))}
     
-        <div className="button-row">
+        <div className="student-survey-button-row">
           <button
             type="button"
             onClick={handleDiscard}
