@@ -57,7 +57,7 @@ const ProfessorDashboard = ({ setUser }) => {  // Get setUser from props
 
   // Navigate to grades page
   const handleNavigateToGrades = () => {
-    navigate("/grades");
+    navigate("/professor_grades");
   };
 
   // Fetch chart data from backend (placeholder API for now)
@@ -154,44 +154,6 @@ const ProfessorDashboard = ({ setUser }) => {  // Get setUser from props
           <option value="Midterm">Midterm</option>
           <option value="Final">Final</option>
         </select>
-      </div>
-
-      {/* Grade Meta Info */}
-      <div className="grades-meta">
-        <p><strong>Begin Date:</strong> 08/13/2024 10:00</p>
-        <p><strong>Due Date:</strong> 08/19/2024 23:59</p>
-      </div>
-
-      {/* Grades Table */}
-      <div className="grades-table-wrapper">
-        <table className="grades-table">
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Evaluations</th>
-              <th>Self-Eval</th>
-              <th>Score</th>
-              <th>Feedback</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Blank rows - backend data to be added later */}
-            <tr>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-            </tr>
-            <tr>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       {/* Chart Section */}

@@ -7,7 +7,9 @@ import Signup from "./pages/Signup";
 import StudentDashboard from "./pages/StudentDashboard";
 import ProfessorDashboard from "./pages/ProfessorDashboard";
 import StudentEvaluation from "./pages/StudentEvaluation";
+import EvaluationResults from "./pages/EvaluationResults";
 import ProfessorSurveyCreation from "./pages/ProfessorSurveyCreation";
+import ProfessorGrades from "./pages/ProfessorGrades";
 import Navbar from "./components/Navbar";
 import VerifyEmail from "./pages/VerifyEmail";
 
@@ -54,7 +56,9 @@ function App() {
           <Route path="/signup" element={user ? <Navigate to={`/${user.role}_dashboard`} /> : <Signup />} />
           <Route path="/student_dashboard" element={user?.role === "student" ? <StudentDashboard setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="/student_evaluation" element={user?.role === "student" ? <StudentEvaluation setUser={setUser} /> : <Navigate to="/" />} />    
+          <Route path="/evaluation_results" element={user?.role === "student" ? <EvaluationResults setUser={setUser} /> : <Navigate to="/" />} />    
           <Route path="/professor_dashboard" element={user?.role === "professor" ? <ProfessorDashboard setUser={setUser} /> : <Navigate to="/" />} />
+          <Route path="/professor_grades" element={user?.role === "professor" ? <ProfessorGrades setUser={setUser} /> : <Navigate to="/" />} />
 		      <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/professor_survey_creation" element={user?.role === "professor" ? <ProfessorSurveyCreation setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" />} />
