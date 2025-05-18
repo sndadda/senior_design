@@ -4,12 +4,11 @@ import "./EvaluationResults.css";
 
 const EvaluationResults = () => {
   const [completedSurveys, setCompletedSurveys] = useState([]);
-  const [selectedSurveyId, setSelectedSurveyId] = useState("");
   const [results, setResults] = useState(null);
 
   // Load completed surveys
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/api/evaluations/completed`, { credentials: "include" })
+    fetch(`${process.env.REACT_APP_API_URL}/api/studentgradesroutes/completed`, { credentials: "include" })
       .then(res => res.ok ? res.json() : Promise.reject(res.status))
       .then(data => setCompletedSurveys(data))
       .catch(err => console.error("Error fetching survey list:", err));
@@ -19,7 +18,7 @@ const EvaluationResults = () => {
   const fetchResults = async (surveyId) => {
     try {
       const res = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/evaluations/results/${surveyId}`,
+        `${process.env.REACT_APP_API_URL}/api/studentgradesroutes/results/${surveyId}`,
         { credentials: "include" }
       );
       if (!res.ok) throw new Error("Failed to fetch survey results.");
@@ -33,7 +32,7 @@ const EvaluationResults = () => {
 
   const surveyOptions = completedSurveys.map(s => ({
     value: s.survey_id,
-    label: `${s.form_title} - ${new Date(s.submitted_at).toLocaleDateString()}`
+    label: `${s.form_title} - ${new Date(s.submitted_at).toLocaleString()}`
   }));
 
   return (
@@ -43,7 +42,6 @@ const EvaluationResults = () => {
       <Select
         options={surveyOptions}
         onChange={opt => {
-          setSelectedSurveyId(opt.value);
           fetchResults(opt.value);
         }}
         placeholder="Select a completed survey..."
@@ -61,7 +59,12 @@ const EvaluationResults = () => {
               <h4>{q.question_text}</h4>
               
               {q.question_type === "rating" && (
-                <p>Average Rating: <strong>{q.average_rating.toFixed(2)} / 5</strong></p>
+                <>
+                  <p>Average Rating: <strong>{(q.average_rating + 1).toFixed(2)} / {q.max_rating}</strong></p>
+                  {q.choices && q.choices.length > 0 && (
+                    <p>Choice:{" "}<strong>{q.choices[Math.round(q.average_rating)] || "N/A"}</strong></p>
+                  )}
+                </>
               )}
 
               {q.question_type === "text" && (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import Navbar from "../components/Navbar";
 import axios from "axios";
 import "./StudentDashboard.css"; // Import styles
@@ -22,7 +23,8 @@ const StudentDashboard = ({ setUser }) => {
     };
     fetchUserData();
   }, []);
-
+  
+  // eslint-disable-next-line no-unused-vars
   const handleLogout = async () => {
     try {
       await axios.post(
@@ -41,6 +43,11 @@ const StudentDashboard = ({ setUser }) => {
   // Navigate to student evaluation page
   const handleNavigateToEvaluation = () => {
     navigate("/student_evaluation");
+  };
+
+    // Navigate to student grades page
+  const handleNavigateToStudentGrades = () => {
+    navigate("/evaluation_results");
   };
 
   return (
@@ -69,18 +76,13 @@ const StudentDashboard = ({ setUser }) => {
         <div className="graph-placeholder">
           <p>[Graph Placeholder]</p>
         </div>
-
-        <h4>Overall Average Score: <span>84.78</span></h4>
-        <h4>Student Feedback:</h4>
-        <ul>
-          <li>Great collaborator and always offers insightful comments.</li>
-          <li>Shows consistent improvement and is a pleasure to work with.</li>
-          <li>Needs to communicate more clearly at times, but overall performs well.</li>
-        </ul>
       </div>
 
       {/* 🔹 Navigate to Evaluation Button */}
       <button className="evaluation-btn" onClick={handleNavigateToEvaluation}>Go to Evaluation</button>
+
+      {/* Navigate to Evaluation Results */}
+      <button className="stu-grade-btn" onClick={handleNavigateToStudentGrades}>Go to Evaluation Results</button>
     </div>
   );
 };
