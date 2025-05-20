@@ -8,6 +8,7 @@ const CourseDetails = () => {
   const [teams, setTeams] = useState([]);
   const [teamName, setTeamName] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [newStudent, setNewStudent] = useState({ username: "", first_name: "", last_name: "" });
 
   useEffect(() => {
     axios
@@ -36,6 +37,47 @@ const CourseDetails = () => {
     setSelectedStudentIds([]);
   };
 
+  const handleAddStudent = async () => {
+    if (!newStudent.username || !newStudent.first_name || !newStudent.last_name) return;
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/professor/add-student`, {
+        section_id: sectionId,
+        ...newStudent
+      }, { withCredentials: true });
+
+      alert("Student added");
+      setNewStudent({ username: "", first_name: "", last_name: "" });
+
+      // Reload course data
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, { withCredentials: true });
+      setCourseData(res.data);
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add student.");
+    }
+  };
+
+  const handleRemoveStudent = async (user_id) => {
+    if (!window.confirm("Are you sure you want to remove this student?")) return;
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/professor/remove-student`, {
+        section_id: sectionId,
+        user_id
+      }, { withCredentials: true });
+
+      // Reload course data
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, { withCredentials: true });
+      setCourseData(res.data);
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove student.");
+    }
+  };
+
   const submitTeams = async () => {
     try {
       await axios.post(
@@ -60,21 +102,39 @@ const CourseDetails = () => {
 
   return (
     <div>
-      <h2>
-        {section.course_name} - Section {section.section_num}
-      </h2>
-      <p>
-        Term: {section.term}, Year: {section.year}
-      </p>
+      <h2>{section.course_name} - Section {section.section_num}</h2>
+      <p>Term: {section.term}, Year: {section.year}</p>
 
       <h3>Enrolled Students</h3>
-      <ul>
+      <ul className="student-list">
         {enrolled.map((s) => (
           <li key={s.user_id}>
-            {s.first_name} {s.last_name} ({s.username})
+            {s.first_name} {s.last_name} ({s.username}){" "}
+            <button onClick={() => handleRemoveStudent(s.user_id)}>Remove</button>
           </li>
         ))}
       </ul>
+
+      <h4>Add Student</h4>
+      <input
+        type="text"
+        placeholder="Username"
+        value={newStudent.username}
+        onChange={(e) => setNewStudent({ ...newStudent, username: e.target.value })}
+      />
+      <input
+        type="text"
+        placeholder="First Name"
+        value={newStudent.first_name}
+        onChange={(e) => setNewStudent({ ...newStudent, first_name: e.target.value })}
+      />
+      <input
+        type="text"
+        placeholder="Last Name"
+        value={newStudent.last_name}
+        onChange={(e) => setNewStudent({ ...newStudent, last_name: e.target.value })}
+      />
+      <button onClick={handleAddStudent}>Add Student</button>
 
       <h3>Pending Students</h3>
       <ul>

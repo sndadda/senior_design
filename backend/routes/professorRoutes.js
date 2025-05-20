@@ -188,6 +188,25 @@ router.post("/assign-teams", authenticateToken, async (req, res) => {
   }
 });
 
+router.post("/remove-student", authenticateToken, async (req, res) => {
+  const { section_id, user_id } = req.body;
+
+  if (!section_id || !user_id) {
+    return res.status(400).json({ message: "Missing fields." });
+  }
+
+  try {
+    await pool.query(
+      "DELETE FROM Enrollments WHERE section_id = $1 AND stud_id = $2",
+      [section_id, user_id]
+    );
+    res.json({ message: "Student removed from section." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error removing student." });
+  }
+});
+
 
 
 
