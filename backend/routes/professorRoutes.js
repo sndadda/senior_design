@@ -19,6 +19,25 @@ router.get("/my-courses", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch courses" });
   }
 });
+// Get all students in a specific section
+router.get("/section-students/:section_id", authenticateToken, async (req, res) => {
+  const sectionId = req.params.section_id;
+
+  try {
+    const result = await pool.query(`
+      SELECT u.first_name, u.last_name, u.username
+      FROM Enrollments e
+      JOIN Users u ON e.stud_id = u.user_id
+      WHERE e.section_id = $1
+    `, [sectionId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch students." });
+  }
+});
+
 
 router.post("/create-course", authenticateToken, async (req, res) => {
   const { course_name, section_num, term, year, students = [] } = req.body;
