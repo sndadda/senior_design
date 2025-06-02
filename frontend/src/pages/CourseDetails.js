@@ -132,6 +132,24 @@ const CourseDetails = () => {
   }
 };
 
+const handleDeleteTeam = async (team_id) => {
+  if (!window.confirm("Are you sure you want to delete this team?")) return;
+
+  try {
+    await axios.post(`${process.env.REACT_APP_API_URL}/api/professor/delete-team`, {
+      team_id,
+    }, { withCredentials: true });
+
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/teams/${sectionId}`, {
+      withCredentials: true,
+    });
+    setExistingTeams(res.data);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete team.");
+  }
+};
+
 
   
 
@@ -238,6 +256,7 @@ const CourseDetails = () => {
                 </li>
               ))}
             </ul>
+			<button onClick={() => handleDeleteTeam(team.team_id)}>Delete Team</button>
           </div>
         ))
       )}

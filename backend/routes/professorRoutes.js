@@ -227,6 +227,23 @@ router.get("/teams/:section_id", authenticateToken, async (req, res) => {
   }
 });
 
+router.post("/delete-team", authenticateToken, async (req, res) => {
+  const { team_id } = req.body;
+
+  if (!team_id) {
+    return res.status(400).json({ message: "Missing team ID." });
+  }
+
+  try {
+    await pool.query("DELETE FROM Team WHERE team_id = $1", [team_id]);
+    res.json({ message: "Team deleted successfully." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete team." });
+  }
+});
+
+
 router.post("/remove-team-member", authenticateToken, async (req, res) => {
   const { team_id, user_id } = req.body;
 
