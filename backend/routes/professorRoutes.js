@@ -188,6 +188,65 @@ router.post("/assign-teams", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/teams/:section_id", authenticateToken, async (req, res) => {
+  const sectionId = req.params.section_id;
+
+  try {
+    // Get teams for students enrolled in this section
+    const result = await pool.query(`
+      SELECT t.team_id, t.team_name, u.user_id, u.first_name, u.last_name, u.username
+      FROM Team t
+      JOIN TeamMembers tm ON t.team_id = tm.team_id
+      JOIN Users u ON tm.stud_id = u.user_id
+      JOIN Enrollments e ON e.stud_id = u.user_id
+      WHERE e.section_id = $1
+    `, [sectionId]);
+
+    // Group students under team names
+    const teams = {};
+    for (const row of result.rows) {
+      if (!teams[row.team_id]) {
+        teams[row.team_id] = {
+          team_id: row.team_id,
+          team_name: row.team_name,
+          members: [],
+        };
+      }
+      teams[row.team_id].members.push({
+        user_id: row.user_id,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        username: row.username,
+      });
+    }
+
+    res.json(Object.values(teams));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching teams" });
+  }
+});
+
+router.post("/remove-team-member", authenticateToken, async (req, res) => {
+  const { team_id, user_id } = req.body;
+
+  if (!team_id || !user_id) {
+    return res.status(400).json({ message: "Missing data" });
+  }
+
+  try {
+    await pool.query(
+      "DELETE FROM TeamMembers WHERE team_id = $1 AND stud_id = $2",
+      [team_id, user_id]
+    );
+    res.json({ message: "Member removed from team." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to remove member." });
+  }
+});
+
+
 router.post("/remove-student", authenticateToken, async (req, res) => {
   const { section_id, user_id } = req.body;
 

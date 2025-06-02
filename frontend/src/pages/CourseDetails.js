@@ -9,30 +9,44 @@ const CourseDetails = () => {
   const [teamName, setTeamName] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [newStudent, setNewStudent] = useState({ username: "", first_name: "", last_name: "" });
+  const [existingTeams, setExistingTeams] = useState([]);
 
   useEffect(() => {
-    axios
-      .get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, {
-        withCredentials: true,
-      })
-      .then((res) => setCourseData(res.data))
-      .catch((err) => console.error("Failed to fetch course details", err));
+    const fetchCourse = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, {
+          withCredentials: true,
+        });
+        setCourseData(res.data);
+      } catch (err) {
+        console.error("Failed to fetch course details", err);
+      }
+    };
+
+    const fetchTeams = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/teams/${sectionId}`, {
+          withCredentials: true,
+        });
+        setExistingTeams(res.data);
+      } catch (err) {
+        console.error("Failed to fetch existing teams", err);
+      }
+    };
+
+    fetchCourse();
+    fetchTeams();
   }, [sectionId]);
 
   const handleCheckboxChange = (user_id) => {
     setSelectedStudentIds((prev) =>
-      prev.includes(user_id)
-        ? prev.filter((id) => id !== user_id)
-        : [...prev, user_id]
+      prev.includes(user_id) ? prev.filter((id) => id !== user_id) : [...prev, user_id]
     );
   };
 
   const addTeam = () => {
     if (!teamName || selectedStudentIds.length === 0) return;
-    setTeams((prev) => [
-      ...prev,
-      { team_name: teamName, student_ids: selectedStudentIds },
-    ]);
+    setTeams((prev) => [...prev, { team_name: teamName, student_ids: selectedStudentIds }]);
     setTeamName("");
     setSelectedStudentIds([]);
   };
@@ -43,16 +57,16 @@ const CourseDetails = () => {
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/professor/add-student`, {
         section_id: sectionId,
-        ...newStudent
+        ...newStudent,
       }, { withCredentials: true });
 
       alert("Student added");
       setNewStudent({ username: "", first_name: "", last_name: "" });
 
-      // Reload course data
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, { withCredentials: true });
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, {
+        withCredentials: true,
+      });
       setCourseData(res.data);
-
     } catch (err) {
       console.error(err);
       alert("Failed to add student.");
@@ -65,13 +79,13 @@ const CourseDetails = () => {
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/professor/remove-student`, {
         section_id: sectionId,
-        user_id
+        user_id,
       }, { withCredentials: true });
 
-      // Reload course data
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, { withCredentials: true });
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/course-details/${sectionId}`, {
+        withCredentials: true,
+      });
       setCourseData(res.data);
-
     } catch (err) {
       console.error(err);
       alert("Failed to remove student.");
@@ -80,21 +94,46 @@ const CourseDetails = () => {
 
   const submitTeams = async () => {
     try {
-      await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/professor/assign-teams`,
-        {
-          section_id: sectionId,
-          teams,
-        },
-        { withCredentials: true }
-      );
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/professor/assign-teams`, {
+        section_id: sectionId,
+        teams,
+      }, { withCredentials: true });
+
       alert("Teams assigned successfully!");
       setTeams([]);
+
+      // Refresh team list
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/teams/${sectionId}`, {
+        withCredentials: true,
+      });
+      setExistingTeams(res.data);
     } catch (err) {
       console.error(err);
       alert("Failed to assign teams.");
     }
   };
+  
+  const handleRemoveMember = async (team_id, user_id) => {
+  if (!window.confirm("Remove this student from the team?")) return;
+
+  try {
+    await axios.post(`${process.env.REACT_APP_API_URL}/api/professor/remove-team-member`, {
+      team_id,
+      user_id,
+    }, { withCredentials: true });
+
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/professor/teams/${sectionId}`, {
+      withCredentials: true,
+    });
+    setExistingTeams(res.data);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to remove team member.");
+  }
+};
+
+
+  
 
   if (!courseData) return <p>Loading course details...</p>;
 
@@ -180,6 +219,27 @@ const CourseDetails = () => {
           </ul>
           <button onClick={submitTeams}>Submit Teams</button>
         </>
+      )}
+
+      <hr />
+
+      <h3>Existing Teams</h3>
+      {existingTeams.length === 0 ? (
+        <p>No teams assigned yet.</p>
+      ) : (
+        existingTeams.map((team) => (
+          <div key={team.team_id}>
+            <h4>{team.team_name}</h4>
+            <ul>
+              {team.members.map((member) => (
+                <li key={member.user_id}>
+                  {member.first_name} {member.last_name} ({member.username}){" "}
+				  <button onClick={() => handleRemoveMember(team.team_id, member.user_id)}>Remove</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
       )}
     </div>
   );
