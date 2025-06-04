@@ -79,7 +79,21 @@ const VerifyEmail = () => {
 
       {/* Back to Sign Up button - always visible */}
       <button 
-        onClick={() => navigate("/signup")}
+        onClick={async () => {
+          try {
+            await fetch(
+              `${process.env.REACT_APP_API_URL}/api/auth/cancel-verification?email=${encodeURIComponent(email)}`,
+              {
+                method: "DELETE",
+                credentials: "include",
+              }
+            );
+          } catch (err) {
+            console.warn("Couldn't clear pending verification", err);
+          }
+          navigate("/signup");
+
+        }}
         style={{
           padding: "10px 15px",
           fontSize: "16px",
