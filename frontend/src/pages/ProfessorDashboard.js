@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Line } from "react-chartjs-2";
+import { Link } from "react-router-dom";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,11 +28,18 @@ ChartJS.register(
 const ProfessorDashboard = ({ setUser }) => {  // Get setUser from props
   const navigate = useNavigate();
   const [chartData, setChartData] = useState(null);
+  const [courses, setCourses] = useState([]);
 
   // Dropdown state
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedTerm, setSelectedTerm] = useState("");
   const [selectedSurveyType, setSelectedSurveyType] = useState("");
+
+  useEffect(() => {
+    axios.get(`${process.env.REACT_APP_API_URL}/api/professor/my-courses`, { withCredentials: true })
+      .then(res => setCourses(res.data))
+      .catch(err => console.error("Failed to fetch courses", err));
+  }, []);
 
   // Handle logout logic
   const handleLogout = async () => {
@@ -134,6 +142,17 @@ const ProfessorDashboard = ({ setUser }) => {  // Get setUser from props
       <button className="logout-btn" onClick={handleLogout}>
         Logout
       </button>
+
+      <h3>My Courses</h3>
+      <ul>
+        {courses.map((c, index) => (
+          <li key={index}>
+            <Link to={`/professor/course/${c.section_id}`}>
+              {c.course_name} - Section {c.section_num} ({c.term} {c.year})
+            </Link>
+          </li>
+        ))}
+      </ul>
 
       {/* Dropdown Filters */}
       <div className="grades-filters">

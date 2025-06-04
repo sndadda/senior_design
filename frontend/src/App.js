@@ -12,6 +12,7 @@ import ProfessorSurveyCreation from "./pages/ProfessorSurveyCreation";
 import ProfessorGrades from "./pages/ProfessorGrades";
 import Navbar from "./components/Navbar";
 import VerifyEmail from "./pages/VerifyEmail";
+import CourseDetails from "./pages/CourseDetails";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -59,7 +60,8 @@ function App() {
           <Route path="/evaluation_results" element={user?.role === "student" ? <EvaluationResults setUser={setUser} /> : <Navigate to="/" />} />    
           <Route path="/professor_dashboard" element={user?.role === "professor" ? <ProfessorDashboard setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="/professor_grades" element={user?.role === "professor" ? <ProfessorGrades setUser={setUser} /> : <Navigate to="/" />} />
-		      <Route path="/verify-email" element={<VerifyEmail />} />
+		      <Route path="/professor/course/:sectionId" element={<CourseDetails />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/professor_survey_creation" element={user?.role === "professor" ? <ProfessorSurveyCreation setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
